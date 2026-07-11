@@ -403,8 +403,8 @@ export default function Home() {
                     <p className="text-violet-400 text-xs mt-1 font-semibold">Für die ganze Familie</p>
                   </div>
                   <div>
-                    <span className="text-4xl font-black bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">14,99 €</span>
-                    <span className="text-gray-400 text-xs block mt-1 font-medium">2,99 € pro Postkarte (25% Rabatt)</span>
+                    <span className="text-4xl font-black bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">18,99 €</span>
+                    <span className="text-gray-400 text-xs block mt-1 font-medium">Für 5 Postkarten, kein Ablaufdatum</span>
                   </div>
                   <div className="h-px bg-slate-800" />
                   <ul className="space-y-4">
@@ -447,8 +447,8 @@ export default function Home() {
                     <p className="text-gray-400 text-xs mt-1">Für Weltenbummler & Vielschreiber</p>
                   </div>
                   <div>
-                    <span className="text-4xl font-black bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent">24,99 €</span>
-                    <span className="text-gray-400 text-xs block mt-1 font-medium">2,49 € pro Postkarte (37% Rabatt)</span>
+                    <span className="text-4xl font-black bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent">34,99 €</span>
+                    <span className="text-gray-400 text-xs block mt-1 font-medium">Für 10 Postkarten, kein Ablaufdatum</span>
                   </div>
                   <div className="h-px bg-slate-800" />
                   <ul className="space-y-4">
