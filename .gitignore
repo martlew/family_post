@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Dependencies
 **/node_modules
 .pnpm-store/
@@ -116,3 +117,12 @@ client/public/__manus__/version.json
 .netlify
 
 .vercel
+=======
+# Environment variables
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+>>>>>>> 2d0af3e (Feat: Add Landingpage and EchtPost API integration)
