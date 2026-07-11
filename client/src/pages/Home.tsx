@@ -380,9 +380,9 @@ export default function Home() {
                   </ul>
                 </div>
                 <div className="mt-8">
-                  <Link href="/register" className="inline-block w-full py-3 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 text-white font-bold text-sm text-center transition-all cursor-pointer">
-                    Jetzt registrieren
-                  </Link>
+                  <a href="https://familypost.lemonsqueezy.com/checkout/buy/f10aee36-f1cb-4533-8cfe-8e59e4b058e4" target="_blank" rel="noopener noreferrer" className="inline-block w-full py-3 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 text-white font-bold text-sm text-center transition-all cursor-pointer">
+                    Jetzt kaufen
+                  </a>
                 </div>
               </motion.div>
 
@@ -427,9 +427,9 @@ export default function Home() {
                   </ul>
                 </div>
                 <div className="mt-8">
-                  <Link href="/register" className="inline-block w-full py-3.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm text-center shadow-lg shadow-violet-600/30 transition-all cursor-pointer">
-                    Jetzt sparen
-                  </Link>
+                  <a href="https://familypost.lemonsqueezy.com/checkout/buy/d441e73c-6f7d-47c4-a4f2-f4f08aee058c" target="_blank" rel="noopener noreferrer" className="inline-block w-full py-3.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm text-center shadow-lg shadow-violet-600/30 transition-all cursor-pointer">
+                    Jetzt kaufen
+                  </a>
                 </div>
               </motion.div>
 
@@ -471,9 +471,9 @@ export default function Home() {
                   </ul>
                 </div>
                 <div className="mt-8">
-                  <Link href="/register" className="inline-block w-full py-3 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 text-white font-bold text-sm text-center transition-all cursor-pointer">
-                    Jetzt registrieren
-                  </Link>
+                  <a href="https://familypost.lemonsqueezy.com/checkout/buy/f7bfbf95-ca60-456f-8fc4-8dc2b49015e0" target="_blank" rel="noopener noreferrer" className="inline-block w-full py-3 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 text-white font-bold text-sm text-center transition-all cursor-pointer">
+                    Jetzt kaufen
+                  </a>
                 </div>
               </motion.div>
             </div>
