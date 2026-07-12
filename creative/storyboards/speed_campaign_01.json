@@ -1,0 +1,12 @@
+{
+  "id": "speed_campaign_01",
+  "title": "Urlaubspost in Rekordzeit",
+  "goal": "Vertrauen durch schnelle Zustellung",
+  "shots": [
+    "emotion_004",
+    "post_012"
+  ],
+  "associated_assets": [
+    "speed_ad_asset_001"
+  ]
+}

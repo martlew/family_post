@@ -1,0 +1,21 @@
+{
+  "id": "emotion_004",
+  "emotion": "warm_nostalgia",
+  "people": [
+    "elderly_lady"
+  ],
+  "country": "DE",
+  "season": "autumn",
+  "lighting": "Golden Hour",
+  "camera": "50mm lens, shallow depth of field, static camera",
+  "duration": 5,
+  "usable_for": [
+    "hook",
+    "emotion",
+    "memory"
+  ],
+  "contains_text": false,
+  "contains_phone": false,
+  "contains_logo": false,
+  "prompt_string": "Cinematic vertical shot, 9:16 format, 24fps. Subject: elderly lady, 72 years old. Action: sitting by a window, reading a real printed postcard. Lighting: Golden Hour. Camera: 50mm lens, shallow depth of field. Style: Ultra Realistic, high detail skin texture. Rules: Completely static camera, no text, no logos, no digital displays, no smartphones."
+}

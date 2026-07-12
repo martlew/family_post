@@ -1,0 +1,17 @@
+{
+  "id": "speed_ad_asset_001",
+  "parent_shot": "emotion_004",
+  "status": "ready_for_extraction",
+  "marketing_goal": "conversion",
+  "platform": [
+    "Instagram",
+    "Pinterest"
+  ],
+  "format": "still_frame",
+  "target_audience": [
+    "grandchildren",
+    "families"
+  ],
+  "headline_copy": "Sonniges Ronda, Puente Nuevo. Echte Postkarte in 2 Tagen in Deutschland!",
+  "description": "Erfasse den exakten 'Aha-Moment', in dem die Oma die Postkarte auf den Tisch legt. Die Beleuchtung ist perfekt für das Still."
+}

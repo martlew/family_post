@@ -1,0 +1,8 @@
+[
+  {
+    "id": "emotion_004",
+    "source_file": "creative\\metadata\\emotion_004.json",
+    "model": "fal-ai/hunyuan-video",
+    "prompt_string": "A beautiful, cinematic 9:16 vertical shot of a 72-year-old grandmother sitting peacefully at a window during golden hour. On the wooden table in front of her lies a single, real printed postcard. Her hands are resting calm on the table. She is looking down at the postcard on the table with a soft, emotional, and loving smile. Golden sunlight illuminates her face. Ultra-realistic skin texture, 24fps, static camera, absolutely no smartphones, no typing, no digital devices, clean and authentic film look."
+  }
+]

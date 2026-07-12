@@ -1,0 +1,19 @@
+{
+  "id": "postcard_001",
+  "status": "ready_for_design",
+  "theme": "Ronda, Spain",
+  "elements": {
+    "front": {
+      "photo": "Sonniges Ronda, Puente Nuevo",
+      "corner_style": "classic",
+      "border": "thin_white"
+    },
+    "back": {
+      "stamps": "Deutscher Poststempel",
+      "address": {
+        "text": "An Oma Erna, Sonnenstraße 12, 12345 Musterstadt",
+        "font": "Handwriting"
+      }
+    }
+  }
+}

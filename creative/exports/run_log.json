@@ -1,0 +1,21 @@
+[
+  {
+    "id": "emotion_004",
+    "source_file": "creative\\metadata\\emotion_004.json",
+    "ok": true,
+    "files": [
+      "creative\\shots\\emotions\\emotion_004.mp4"
+    ],
+    "metadata_file": "creative\\metadata\\emotion_004.json",
+    "error": null,
+    "result": {
+      "video": {
+        "url": "https://v3b.fal.media/files/b/0aa1f911/MQH-nDbYydilp6XH32C00_JtJs4OzP.mp4",
+        "content_type": "video/mp4",
+        "file_name": "MQH-nDbYydilp6XH32C00_JtJs4OzP.mp4",
+        "file_size": 379219
+      },
+      "seed": 978
+    }
+  }
+]

@@ -1,0 +1,60 @@
+{
+  "id": "emotion_004",
+  "primary_emotion": "nostalgia",
+  "secondary_emotions": [
+    "gratitude",
+    "warmth"
+  ],
+  "emotion_intensity": 8,
+  "story_role": "emotional_peak",
+  "marketing": {
+    "marketing_goal": [
+      "emotion",
+      "trust"
+    ],
+    "funnel_stage": [
+      "awareness",
+      "consideration"
+    ],
+    "cta_strength": "low"
+  },
+  "campaigns": [
+    "grandparents_day",
+    "everyday",
+    "christmas"
+  ],
+  "target_audience": [
+    "grandchildren",
+    "families"
+  ],
+  "camera": {
+    "shot_size": "close_up",
+    "movement": "static",
+    "lens": "50mm",
+    "angle": "eye_level"
+  },
+  "color_palette_mood": "warm_golden_natural",
+  "focus": [
+    "face",
+    "postcard",
+    "hands"
+  ],
+  "editing": {
+    "good_intro": false,
+    "good_outro": false,
+    "transition_friendly": true
+  },
+  "quality": {
+    "stable_hands": true,
+    "stable_face": true,
+    "artifacts": false,
+    "usable": true
+  },
+  "technical": {
+    "duration": "5s",
+    "contains_text": false,
+    "contains_phone": false,
+    "contains_logo": false,
+    "prompt_string": "A beautiful, cinematic 9:16 vertical shot of a 72-year-old grandmother sitting peacefully at a window during golden hour. On the wooden table in front of her lies a single, real printed postcard. Her hands are resting calm on the table. She is looking down at the postcard on the table with a soft, emotional, and loving smile. Golden sunlight illuminates her face. Ultra-realistic skin texture, 24fps, static camera, absolutely no smartphones, no typing, no digital devices, clean and authentic film look."
+  }
+}

@@ -1,0 +1,21 @@
+[
+  {
+    "shot": 1,
+    "title": "Hook",
+    "ok": true,
+    "result": {
+      "video": {
+        "url": "https://v3b.fal.media/files/b/0aa1f217/E8Hyche7J-PZvgR3wNZMQ_output.mp4",
+        "content_type": "video/mp4",
+        "file_name": "E8Hyche7J-PZvgR3wNZMQ_output.mp4",
+        "file_size": 416227
+      },
+      "seed": 575
+    },
+    "files": [
+      "generated_clips\\shot_01_1.mp4",
+      "E8Hyche7J-PZvgR3wNZMQ_output.mp4"
+    ],
+    "error": null
+  }
+]
