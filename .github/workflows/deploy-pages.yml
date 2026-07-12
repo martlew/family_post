@@ -34,12 +34,15 @@ jobs:
       - name: Build
         env:
           GITHUB_PAGES: "true"
-        run: npm run build
+        run: |
+          npm run build
+          mkdir -p client/dist
+          cp -r dist/public client/dist/public
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/public
+          path: client/dist/public
 
   deploy:
     runs-on: ubuntu-latest
