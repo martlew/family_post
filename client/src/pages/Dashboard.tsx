@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Mail, Plus, Settings, X, RotateCw, CreditCard } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
+import { clearAuthSession, getAuthSession } from "@/lib/auth";
 
 interface Postcard {
   id: string;
@@ -15,6 +16,7 @@ interface Postcard {
 }
 
 export default function Dashboard() {
+  const [, navigate] = useLocation();
   const [postcards, setPostcards] = useState<Postcard[]>([]);
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isModalFlipped, setIsModalFlipped] = useState(false);
@@ -30,6 +32,11 @@ export default function Dashboard() {
   ];
 
   useEffect(() => {
+    if (!getAuthSession()) {
+      navigate("/login");
+      return;
+    }
+
     const saved = localStorage.getItem("family_postcards");
     if (saved) {
       try {
@@ -38,7 +45,7 @@ export default function Dashboard() {
         console.error("Fehler beim Laden der Postkarten:", e);
       }
     }
-  }, []);
+  }, [navigate]);
 
   // 3D Card Rotation Styles for Modal
   const cardStyle = {
@@ -125,6 +132,7 @@ export default function Dashboard() {
             </motion.button>
             <Link
               href="/login"
+              onClick={() => clearAuthSession()}
               className="cursor-pointer rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 transition-all hover:border-teal-700/40 hover:text-teal-800"
             >
               Abmelden

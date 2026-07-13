@@ -3,6 +3,7 @@ import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
+import { getSelectedPlan, setAuthSession } from "@/lib/auth";
 
 /**
  * FamilyPost Login Page in the same warm visual system as the landing page.
@@ -11,6 +12,9 @@ import { Link, useLocation } from "wouter";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [isResetLoading, setIsResetLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -22,20 +26,55 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // TODO: An eure echte Login-API anpassen
-      // const res = await fetch("/api/auth/login", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ email, password }),
-      // });
-      // if (!res.ok) throw new Error("Login fehlgeschlagen");
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-      // Simulierter Lade-Zustand (800ms), danach Weiterleitung zur Hauptseite
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || "Login fehlgeschlagen.");
+      }
+
+      setAuthSession({ token: payload.token, user: payload.user });
+      toast.success("Login erfolgreich.");
+
+      const selectedPlan = getSelectedPlan();
+      if (selectedPlan) {
+        navigate("/editor");
+        return;
+      }
       navigate("/dashboard");
     } catch (err: any) {
-      setError(err.message || "Etwas ist schiefgelaufen. Bitte versuche es erneut.");
+      setError(err.message || "Server nicht erreichbar. Bitte spaeter erneut versuchen.");
+    } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsResetLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || "Reset konnte nicht gestartet werden.");
+      }
+
+      toast.success(payload.message || "Reset-Anfrage wurde versendet.");
+      setShowResetModal(false);
+      setResetEmail("");
+    } catch (err: any) {
+      toast.error(err.message || "Server nicht erreichbar. Bitte spaeter erneut versuchen.");
+    } finally {
+      setIsResetLoading(false);
     }
   };
 
@@ -159,7 +198,10 @@ export default function Login() {
               <div className="flex justify-end">
                 <button
                   type="button"
-                  onClick={() => toast.info("Passwort-Reset folgt in der naechsten Ausbaustufe.")}
+                  onClick={() => {
+                    setResetEmail(email);
+                    setShowResetModal(true);
+                  }}
                   className="text-sm text-teal-800 hover:text-teal-700 transition-colors"
                 >
                   Passwort vergessen?
@@ -206,6 +248,49 @@ export default function Login() {
           </div>
         </motion.div>
       </div>
+
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/45 backdrop-blur-sm"
+            onClick={() => setShowResetModal(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+          >
+            <h2 className="text-xl font-black text-slate-950">Passwort zuruecksetzen</h2>
+            <p className="mt-2 text-sm text-slate-600">Gib die E-Mail-Adresse deines Kontos ein. Wir senden einen Reset-Hinweis.</p>
+            <form className="mt-5 space-y-4" onSubmit={handleForgotPassword}>
+              <input
+                type="email"
+                required
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                placeholder="name@beispiel.de"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-700/30"
+              />
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowResetModal(false)}
+                  className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:border-slate-400"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="submit"
+                  disabled={isResetLoading}
+                  className="flex-1 rounded-xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
+                >
+                  {isResetLoading ? "Sende..." : "Reset senden"}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

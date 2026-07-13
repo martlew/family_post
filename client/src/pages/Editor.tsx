@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { ArrowLeft, Camera, Mail, RotateCw, Send, Upload, Image as ImageIcon } from "lucide-react";
+import { getAuthSession } from "@/lib/auth";
 
 interface Postcard {
   id: string;
@@ -52,6 +53,21 @@ export default function Editor() {
   const [activeTab, setActiveTab] = useState<"image" | "text">("image");
   const [promoCode, setPromoCode] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!getAuthSession()) {
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  const floatingCards = [
+    { left: "8%", top: "20%", duration: 26, delay: 0 },
+    { left: "20%", top: "76%", duration: 30, delay: 2 },
+    { left: "40%", top: "18%", duration: 24, delay: 1 },
+    { left: "58%", top: "76%", duration: 29, delay: 2.5 },
+    { left: "74%", top: "24%", duration: 25, delay: 0.5 },
+    { left: "88%", top: "68%", duration: 27, delay: 1.5 },
+  ];
 
   const handlePostalLookup = async (postalCode: string) => {
     if (!/^\d{5}$/.test(postalCode)) {
@@ -205,6 +221,28 @@ export default function Editor() {
           className="absolute bottom-40 right-20 w-96 h-96 bg-amber-300/20 rounded-full blur-3xl opacity-25 animate-pulse"
           style={{ animationDelay: "1s" }}
         />
+        {floatingCards.map((card, index) => (
+          <motion.div
+            key={`${card.left}-${card.top}`}
+            className="absolute h-8 w-12 rounded-md border border-emerald-200/80 bg-white/75 shadow-[0_10px_28px_rgba(15,118,110,0.12)]"
+            style={{ left: card.left, top: card.top }}
+            animate={{
+              y: [0, -20, 0],
+              x: [0, index % 2 === 0 ? 9 : -9, 0],
+              rotate: [-4, 3, -4],
+              opacity: [0.1, 0.2, 0.1],
+            }}
+            transition={{
+              duration: card.duration,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: card.delay,
+            }}
+          >
+            <div className="mx-1 mt-1 h-[2px] w-5 rounded bg-emerald-300/70" />
+            <div className="mx-1 mt-1 h-[2px] w-8 rounded bg-emerald-200/70" />
+          </motion.div>
+        ))}
       </div>
 
       {/* Navigation */}

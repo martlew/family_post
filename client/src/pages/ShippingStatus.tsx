@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useParams } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import { ArrowLeft, Check, ClipboardList, Loader2, Mail, MapPin, Printer, Truck } from "lucide-react";
+import { getAuthSession } from "@/lib/auth";
 
 interface Postcard {
   id: string;
@@ -15,10 +16,24 @@ interface Postcard {
 
 export default function ShippingStatus() {
   const params = useParams<{ id: string }>();
+  const [, navigate] = useLocation();
   const [postcard, setPostcard] = useState<Postcard | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
 
+  const floatingCards = [
+    { left: "7%", top: "23%", duration: 24, delay: 0 },
+    { left: "22%", top: "74%", duration: 28, delay: 2 },
+    { left: "46%", top: "18%", duration: 26, delay: 1 },
+    { left: "64%", top: "76%", duration: 30, delay: 3 },
+    { left: "84%", top: "26%", duration: 27, delay: 1.5 },
+  ];
+
   useEffect(() => {
+    if (!getAuthSession()) {
+      navigate("/login");
+      return;
+    }
+
     const saved = localStorage.getItem("family_postcards");
     if (saved && params.id) {
       try {
@@ -31,7 +46,7 @@ export default function ShippingStatus() {
         console.error("Fehler beim Laden der Postkarte für Status:", e);
       }
     }
-  }, [params.id]);
+  }, [navigate, params.id]);
 
   // Simulation der Liefer-Phasen
   useEffect(() => {
@@ -82,6 +97,28 @@ export default function ShippingStatus() {
           className="absolute bottom-40 right-20 w-96 h-96 bg-amber-300/20 rounded-full blur-3xl opacity-25 animate-pulse"
           style={{ animationDelay: "1s" }}
         />
+        {floatingCards.map((card, index) => (
+          <motion.div
+            key={`${card.left}-${card.top}`}
+            className="absolute h-8 w-12 rounded-md border border-emerald-200/80 bg-white/75 shadow-[0_10px_28px_rgba(15,118,110,0.12)]"
+            style={{ left: card.left, top: card.top }}
+            animate={{
+              y: [0, -18, 0],
+              x: [0, index % 2 === 0 ? 8 : -8, 0],
+              rotate: [-4, 3, -4],
+              opacity: [0.1, 0.2, 0.1],
+            }}
+            transition={{
+              duration: card.duration,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: card.delay,
+            }}
+          >
+            <div className="mx-1 mt-1 h-[2px] w-5 rounded bg-emerald-300/70" />
+            <div className="mx-1 mt-1 h-[2px] w-8 rounded bg-emerald-200/70" />
+          </motion.div>
+        ))}
       </div>
 
       {/* Navigation */}

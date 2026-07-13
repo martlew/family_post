@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Camera, Globe2, Heart, Pencil, Send, SmartphoneNfc, Star } from "lucide-react";
 import { Link } from "wouter";
+import { setSelectedPlan } from "@/lib/auth";
 
 const steps = [
   {
@@ -28,6 +29,10 @@ const benefits = [
 ];
 
 export default function Home() {
+  const handlePlanSelection = (plan: "single" | "family-5" | "benefit-10") => {
+    setSelectedPlan(plan);
+  };
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
@@ -158,23 +163,29 @@ export default function Home() {
               <p className="mt-3 text-base text-slate-600 md:text-lg">All-inclusive mit Premium-Druck, echtem Porto und weltweitem Versand.</p>
             </div>
             <div className="mt-8 grid gap-5 md:grid-cols-3">
-              <article className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-800">Einzelticket</p>
-                <p className="mt-4 text-4xl font-black text-slate-950">3,99 €</p>
-                <p className="mt-2 text-sm text-slate-600">Für eine Postkarte ohne Abo und ohne Mindestlaufzeit.</p>
-              </article>
+              <Link href="/register" onClick={() => handlePlanSelection("single")}>
+                <article className="h-full cursor-pointer rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.10)] transition-all hover:-translate-y-0.5 hover:border-teal-700/35 hover:shadow-[0_24px_55px_rgba(15,23,42,0.14)]">
+                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-800">Einzelticket</p>
+                  <p className="mt-4 text-4xl font-black text-slate-950">3,99 €</p>
+                  <p className="mt-2 text-sm text-slate-600">Für eine Postkarte ohne Abo und ohne Mindestlaufzeit.</p>
+                </article>
+              </Link>
 
-              <article className="rounded-[24px] border border-emerald-300 bg-gradient-to-b from-emerald-50 to-white p-6 shadow-[0_22px_60px_rgba(15,118,110,0.16)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-800">Family-Paket (5er)</p>
-                <p className="mt-4 text-4xl font-black text-slate-950">18,99 €</p>
-                <p className="mt-2 text-sm text-slate-700">Für 5 Postkarten, kein Ablaufdatum, gemeinsam in der Familie nutzbar.</p>
-              </article>
+              <Link href="/register" onClick={() => handlePlanSelection("family-5")}>
+                <article className="h-full cursor-pointer rounded-[24px] border border-emerald-300 bg-gradient-to-b from-emerald-50 to-white p-6 shadow-[0_22px_60px_rgba(15,118,110,0.16)] transition-all hover:-translate-y-0.5 hover:border-teal-700/45 hover:shadow-[0_26px_62px_rgba(15,118,110,0.22)]">
+                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-800">Family-Paket (5er)</p>
+                  <p className="mt-4 text-4xl font-black text-slate-950">18,99 €</p>
+                  <p className="mt-2 text-sm text-slate-700">Für 5 Postkarten, kein Ablaufdatum, gemeinsam in der Familie nutzbar.</p>
+                </article>
+              </Link>
 
-              <article className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-800">Vorteils-Paket (10er)</p>
-                <p className="mt-4 text-4xl font-black text-slate-950">34,99 €</p>
-                <p className="mt-2 text-sm text-slate-600">Für 10 Postkarten, kein Ablaufdatum, ideal für Vielschreiber.</p>
-              </article>
+              <Link href="/register" onClick={() => handlePlanSelection("benefit-10")}>
+                <article className="h-full cursor-pointer rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.10)] transition-all hover:-translate-y-0.5 hover:border-teal-700/35 hover:shadow-[0_24px_55px_rgba(15,23,42,0.14)]">
+                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-800">Vorteils-Paket (10er)</p>
+                  <p className="mt-4 text-4xl font-black text-slate-950">34,99 €</p>
+                  <p className="mt-2 text-sm text-slate-600">Für 10 Postkarten, kein Ablaufdatum, ideal für Vielschreiber.</p>
+                </article>
+              </Link>
             </div>
           </div>
         </section>

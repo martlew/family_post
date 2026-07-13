@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { getSelectedPlan, setAuthSession } from "@/lib/auth";
 
 /**
  * FamilyPost Register Page in the same warm visual system as Home and Login.
@@ -22,19 +23,23 @@ export default function Register() {
     setIsLoading(true);
 
     try {
-      // TODO: An eure echte Register-API anpassen
-      // const res = await fetch("/api/auth/register", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ fullName, email, password }),
-      // });
-      // if (!res.ok) throw new Error("Registrierung fehlgeschlagen");
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName, email, password }),
+      });
 
-      // Simulierter Lade-Zustand (800ms), danach Weiterleitung zur Hauptseite
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      navigate("/dashboard");
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || "Registrierung fehlgeschlagen.");
+      }
+
+      setAuthSession({ token: payload.token, user: payload.user });
+      const selectedPlan = getSelectedPlan();
+      navigate(selectedPlan ? "/editor" : "/dashboard");
     } catch (err: any) {
       setError(err.message || "Etwas ist schiefgelaufen. Bitte versuche es erneut.");
+    } finally {
       setIsLoading(false);
     }
   };
