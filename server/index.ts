@@ -10,6 +10,20 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  const frontendOrigin = process.env.FRONTEND_ORIGIN || "*";
+  app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", frontendOrigin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+
+    if (req.method === "OPTIONS") {
+      return res.status(204).end();
+    }
+    return next();
+  });
+
   app.use(express.json());
 
   type UserRecord = {
@@ -105,6 +119,49 @@ async function startServer() {
 
   app.get("/api/auth/health", (_req, res) => {
     return res.status(200).json({ ok: true });
+  });
+
+  app.post("/api/checkout", async (req, res) => {
+    const apiKey = process.env.ECHTPOST_API_KEY;
+    const endpoint = process.env.ECHTPOST_API_URL || "https://api.echtpost.example/postcards";
+
+    if (!apiKey) {
+      return res.status(500).json({ error: "Missing ECHTPOST_API_KEY" });
+    }
+
+    const { recipientName, recipientAddress, postcardType, message, selectedPlan } = req.body ?? {};
+    if (!recipientName || !recipientAddress || !message) {
+      return res.status(400).json({ error: "recipientName, recipientAddress und message sind erforderlich." });
+    }
+
+    const payload = {
+      recipientName,
+      recipientAddress,
+      postcardType: postcardType || "standard",
+      message,
+      selectedPlan: selectedPlan || "single",
+      source: "familypost-do-backend",
+    };
+
+    try {
+      const upstream = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await upstream.json().catch(() => ({}));
+      if (!upstream.ok) {
+        return res.status(upstream.status).json({ error: "EchtPost submission failed", details: data });
+      }
+
+      return res.status(200).json({ success: true, data });
+    } catch (error: any) {
+      return res.status(500).json({ error: "Failed to submit to EchtPost", details: error?.message || "Unknown error" });
+    }
   });
 
   // Serve static files from dist/public in production

@@ -3,7 +3,7 @@ import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
-import { getSelectedPlan, setAuthSession } from "@/lib/auth";
+import { buildApiUrl, getSelectedPlan, setAuthSession } from "@/lib/auth";
 
 /**
  * FamilyPost Login Page in the same warm visual system as the landing page.
@@ -26,7 +26,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch(buildApiUrl("/api/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -58,7 +58,7 @@ export default function Login() {
     setIsResetLoading(true);
 
     try {
-      const res = await fetch("/api/auth/forgot-password", {
+      const res = await fetch(buildApiUrl("/api/auth/forgot-password"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: resetEmail }),

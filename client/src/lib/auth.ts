@@ -9,6 +9,20 @@ export type AuthSession = {
 
 const AUTH_STORAGE_KEY = "familypost_auth";
 
+export const getApiBaseUrl = () => {
+  const configured = String(import.meta.env.VITE_API_URL ?? "").trim();
+  if (!configured) {
+    return "";
+  }
+  return configured.replace(/\/$/, "");
+};
+
+export const buildApiUrl = (path: string) => {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const base = getApiBaseUrl();
+  return base ? `${base}${normalizedPath}` : normalizedPath;
+};
+
 export const getAuthSession = (): AuthSession | null => {
   try {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY);

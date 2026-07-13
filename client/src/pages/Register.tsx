@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { getSelectedPlan, setAuthSession } from "@/lib/auth";
+import { buildApiUrl, getSelectedPlan, setAuthSession } from "@/lib/auth";
 
 /**
  * FamilyPost Register Page in the same warm visual system as Home and Login.
@@ -23,7 +23,7 @@ export default function Register() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetch(buildApiUrl("/api/auth/register"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fullName, email, password }),
