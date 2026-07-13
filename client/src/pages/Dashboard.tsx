@@ -20,6 +20,15 @@ export default function Dashboard() {
   const [isModalFlipped, setIsModalFlipped] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  const floatingCards = [
+    { left: "6%", top: "22%", duration: 24, delay: 0 },
+    { left: "18%", top: "72%", duration: 28, delay: 2 },
+    { left: "34%", top: "18%", duration: 26, delay: 1 },
+    { left: "52%", top: "78%", duration: 30, delay: 3 },
+    { left: "68%", top: "24%", duration: 27, delay: 1.5 },
+    { left: "82%", top: "68%", duration: 25, delay: 0.5 },
+  ];
+
   useEffect(() => {
     const saved = localStorage.getItem("family_postcards");
     if (saved) {
@@ -53,23 +62,36 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 overflow-hidden relative flex flex-col">
-      {/* Background – identisch mit Home.tsx */}
+    <div className="min-h-screen overflow-hidden relative flex flex-col bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
+      {/* Dashboard background with subtle floating postcards */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl opacity-20 animate-pulse" />
+        <div className="absolute top-20 left-10 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl opacity-30 animate-pulse" />
         <div
-          className="absolute bottom-40 right-20 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl opacity-20 animate-pulse"
+          className="absolute bottom-40 right-20 w-96 h-96 bg-amber-300/20 rounded-full blur-3xl opacity-30 animate-pulse"
           style={{ animationDelay: "1s" }}
         />
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              "url(https://d2xsxph8kpxj0f.cloudfront.net/310419663030113068/9BVyNnm67pq72smuxeHCsc/hero-gradient-bg-KJkiHKwPCDUe2rS4hxJHrk.webp)",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        />
+        {floatingCards.map((card, index) => (
+          <motion.div
+            key={`${card.left}-${card.top}`}
+            className="absolute h-8 w-12 rounded-md border border-emerald-200/80 bg-white/75 shadow-[0_10px_28px_rgba(15,118,110,0.12)]"
+            style={{ left: card.left, top: card.top }}
+            animate={{
+              y: [0, -20, 0],
+              x: [0, index % 2 === 0 ? 10 : -10, 0],
+              rotate: [-4, 3, -4],
+              opacity: [0.1, 0.2, 0.1],
+            }}
+            transition={{
+              duration: card.duration,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: card.delay,
+            }}
+          >
+            <div className="mx-1 mt-1 h-[2px] w-5 rounded bg-emerald-300/70" />
+            <div className="mx-1 mt-1 h-[2px] w-8 rounded bg-emerald-200/70" />
+          </motion.div>
+        ))}
       </div>
 
       {/* Navigation */}
@@ -77,7 +99,7 @@ export default function Dashboard() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative z-10 backdrop-blur-sm bg-slate-950/80 border-b border-slate-800"
+        className="relative z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur-md"
       >
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-3 cursor-pointer">
@@ -86,7 +108,7 @@ export default function Dashboard() {
               alt="FamilyPost Logo"
               className="w-8 h-8"
             />
-            <span className="text-xl font-bold bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-slate-950">
               FamilyPost
             </span>
           </Link>
@@ -96,14 +118,14 @@ export default function Dashboard() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsSettingsOpen(true)}
-              className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-slate-800 transition-all"
+              className="rounded-xl p-2 text-slate-500 hover:bg-emerald-50 hover:text-teal-800 transition-all"
               aria-label="Einstellungen"
             >
               <Settings className="w-5 h-5" />
             </motion.button>
             <Link
               href="/login"
-              className="px-4 py-2 rounded-full border border-slate-600 text-sm text-gray-300 hover:text-white hover:border-slate-400 transition-all cursor-pointer"
+              className="cursor-pointer rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 transition-all hover:border-teal-700/40 hover:text-teal-800"
             >
               Abmelden
             </Link>
@@ -120,10 +142,10 @@ export default function Dashboard() {
           transition={{ duration: 0.6 }}
           className="mb-10"
         >
-          <h1 className="text-3xl md:text-4xl font-black text-white mb-2">
+          <h1 className="mb-2 text-3xl font-black text-slate-950 md:text-4xl">
             Meine Postkarten
           </h1>
-          <p className="text-gray-400">
+          <p className="text-slate-600">
             Erstelle und versende Postkarten direkt an deine Familie.
           </p>
         </motion.div>
@@ -139,16 +161,16 @@ export default function Dashboard() {
             <motion.div
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
-              className="w-full p-8 rounded-2xl bg-gradient-to-r from-orange-500/20 to-pink-500/20 border border-orange-500/30 hover:border-orange-500/60 transition-all duration-300 flex flex-col sm:flex-row items-center gap-6 text-left group"
+              className="group flex w-full flex-col items-center gap-6 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-amber-50 p-8 text-left transition-all duration-300 hover:border-emerald-400 sm:flex-row"
             >
-              <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:shadow-orange-500/50 transition-shadow">
+              <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-teal-700 shadow-lg shadow-emerald-900/20 transition-shadow group-hover:shadow-emerald-900/35">
                 <Plus className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white mb-1">
+                <h2 className="mb-1 text-xl font-bold text-slate-900">
                   Neue Postkarte erstellen
                 </h2>
-                <p className="text-gray-400 text-sm">
+                <p className="text-sm text-slate-600">
                   Lade ein Foto hoch, schreibe eine persönliche Nachricht und
                   wähle einen Empfänger aus.
                 </p>
@@ -170,16 +192,16 @@ export default function Dashboard() {
                   setSelectedPostcard(card);
                   setIsModalFlipped(false);
                 }}
-                className="rounded-2xl overflow-hidden bg-slate-900/60 backdrop-blur-sm border border-slate-700/50 hover:border-violet-500/50 hover:bg-slate-900/70 transition-all duration-300 shadow-xl cursor-pointer group flex flex-col"
+                className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-[0_14px_38px_rgba(15,23,42,0.10)] transition-all duration-300 hover:border-emerald-300 hover:bg-white"
               >
                 {/* Image Preview */}
-                <div className="aspect-[3/2] w-full overflow-hidden bg-slate-950 relative">
+                <div className="relative aspect-[3/2] w-full overflow-hidden bg-slate-100">
                   <img
                     src={card.imageUrl}
                     alt="Postkarten Motiv"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute top-3 right-3 px-2 py-1 rounded bg-slate-950/80 text-[10px] text-gray-400 font-bold border border-slate-800">
+                  <div className="absolute right-3 top-3 rounded border border-slate-200 bg-white/90 px-2 py-1 text-[10px] font-bold text-slate-600">
                     {card.createdAt}
                   </div>
                 </div>
@@ -187,14 +209,14 @@ export default function Dashboard() {
                 {/* Card Info */}
                 <div className="p-5 flex-1 flex flex-col justify-between gap-4">
                   <div>
-                    <h3 className="text-white font-bold text-base mb-1 truncate">
+                    <h3 className="mb-1 truncate text-base font-bold text-slate-900">
                       {card.recipientName}
                     </h3>
-                    <p className="text-gray-400 text-xs truncate">
+                    <p className="truncate text-xs text-slate-500">
                       {card.recipientAddress}, {card.recipientCity}
                     </p>
                   </div>
-                  <div className="text-xs text-violet-400 font-semibold group-hover:text-violet-300 transition-colors flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-teal-800 transition-colors group-hover:text-teal-700">
                     <Mail className="w-3.5 h-3.5" />
                     <span>Postkarte ansehen & umdrehen</span>
                   </div>
@@ -208,25 +230,25 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="p-12 rounded-2xl bg-slate-900/60 backdrop-blur-sm border border-slate-700/50 flex flex-col items-center justify-center text-center gap-4"
+            className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-slate-200 bg-white/90 p-12 text-center shadow-[0_14px_38px_rgba(15,23,42,0.10)]"
           >
-            <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mb-2">
-              <Mail className="w-8 h-8 text-gray-500" />
+            <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50">
+              <Mail className="w-8 h-8 text-teal-700" />
             </div>
-            <h3 className="text-lg font-bold text-white">
+            <h3 className="text-lg font-bold text-slate-900">
               Noch keine Postkarten
             </h3>
-            <p className="text-gray-400 text-sm max-w-sm">
+            <p className="max-w-sm text-sm text-slate-600">
               Klicke auf „Neue Postkarte erstellen", um deine erste Postkarte zu
               gestalten und zu verschicken.
             </p>
 
             <div className="mt-4 flex gap-3 flex-wrap justify-center">
-              <Link href="/editor" className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700 hover:border-slate-500 text-gray-400 hover:text-white text-sm transition-all cursor-pointer">
+              <Link href="/editor" className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 transition-all hover:border-teal-700/35 hover:text-teal-800">
                 <Camera className="w-4 h-4" />
                 <span>Foto hochladen</span>
               </Link>
-              <Link href="/editor" className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700 hover:border-slate-500 text-gray-400 hover:text-white text-sm transition-all cursor-pointer">
+              <Link href="/editor" className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 transition-all hover:border-teal-700/35 hover:text-teal-800">
                 <Mail className="w-4 h-4" />
                 <span>Empfänger wählen</span>
               </Link>
@@ -245,7 +267,7 @@ export default function Dashboard() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedPostcard(null)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
             />
 
             {/* Modal Card */}
@@ -253,18 +275,18 @@ export default function Dashboard() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-2xl bg-slate-900/90 border border-slate-700/60 rounded-3xl p-6 md:p-8 shadow-2xl z-10 flex flex-col items-center gap-6"
+              className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl md:p-8"
             >
               {/* Close Button */}
               <button
                 onClick={() => setSelectedPostcard(null)}
-                className="absolute top-4 right-4 p-2 rounded-xl text-gray-400 hover:text-white hover:bg-slate-800/50 transition-all"
+                className="absolute right-4 top-4 rounded-xl p-2 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700"
                 aria-label="Schließen"
               >
                 <X className="w-6 h-6" />
               </button>
 
-              <h2 className="text-xl md:text-2xl font-black text-white text-center">
+              <h2 className="text-center text-xl font-black text-slate-950 md:text-2xl">
                 Postkarte an {selectedPostcard.recipientName}
               </h2>
 
@@ -278,7 +300,7 @@ export default function Dashboard() {
                   {/* FRONT SIDE */}
                   <div
                     style={faceStyle}
-                    className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50 bg-slate-950"
+                    className="absolute inset-0 h-full w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-2xl"
                   >
                     <img
                       src={selectedPostcard.imageUrl}
@@ -290,7 +312,7 @@ export default function Dashboard() {
                   {/* BACK SIDE */}
                   <div
                     style={backFaceStyle}
-                    className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50 bg-white text-slate-800 p-6 flex flex-row"
+                    className="absolute inset-0 h-full w-full flex-row overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 text-slate-800 shadow-2xl"
                   >
                     {/* Left Half: Message */}
                     <div className="w-1/2 pr-4 border-r border-dashed border-gray-300 flex flex-col justify-between h-full font-serif text-sm leading-relaxed overflow-hidden">
@@ -303,8 +325,8 @@ export default function Dashboard() {
                     <div className="w-1/2 pl-4 flex flex-col justify-between h-full">
                       {/* Stamp */}
                       <div className="flex justify-end">
-                        <div className="w-12 h-16 border border-dashed border-violet-400/80 rounded bg-violet-50/50 flex flex-col items-center justify-center p-1 text-[8px] text-violet-500 font-bold select-none">
-                          <Mail className="w-6 h-6 mb-1 text-violet-400" />
+                        <div className="flex h-16 w-12 flex-col items-center justify-center rounded border border-dashed border-teal-500/60 bg-emerald-50 p-1 text-[8px] font-bold text-teal-700 select-none">
+                          <Mail className="mb-1 h-6 w-6 text-teal-700" />
                           FamilyPost
                         </div>
                       </div>
@@ -332,7 +354,7 @@ export default function Dashboard() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setIsModalFlipped(!isModalFlipped)}
-                  className="px-6 py-2.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm transition-all flex items-center gap-2 shadow-lg shadow-violet-600/30"
+                  className="flex items-center gap-2 rounded-full bg-teal-700 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-900/20 transition-all hover:bg-teal-800"
                 >
                   <RotateCw className="w-4 h-4" />
                   <span>Karte umdrehen ({isModalFlipped ? "Vorderseite" : "Rückseite"})</span>
@@ -341,7 +363,7 @@ export default function Dashboard() {
                   <motion.a
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="px-6 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 hover:border-slate-600 font-semibold text-sm transition-all flex items-center gap-2 shadow-lg"
+                    className="flex items-center gap-2 rounded-full border border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-800 shadow-lg transition-all hover:border-teal-700/35 hover:text-teal-800"
                   >
                     <span>🚚 Sendungsstatus prüfen</span>
                   </motion.a>
@@ -362,7 +384,7 @@ export default function Dashboard() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSettingsOpen(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
             />
 
             {/* Modal Card */}
@@ -370,23 +392,23 @@ export default function Dashboard() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-slate-900/90 border border-slate-700/60 rounded-3xl p-6 md:p-8 shadow-2xl z-10 flex flex-col gap-6"
+              className="relative z-10 flex w-full max-w-md flex-col gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl md:p-8"
             >
               {/* Close Button */}
               <button
                 onClick={() => setIsSettingsOpen(false)}
-                className="absolute top-4 right-4 p-2 rounded-xl text-gray-400 hover:text-white hover:bg-slate-800/50 transition-all"
+                className="absolute right-4 top-4 rounded-xl p-2 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700"
                 aria-label="Schließen"
               >
                 <X className="w-6 h-6" />
               </button>
 
               <div>
-                <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
-                  <Settings className="w-6 h-6 text-violet-400" />
+                <h2 className="flex items-center gap-2 text-xl font-black text-slate-950 md:text-2xl">
+                  <Settings className="w-6 h-6 text-teal-700" />
                   <span>Mein Profil & Einstellungen</span>
                 </h2>
-                <p className="text-gray-400 text-xs mt-1">
+                <p className="mt-1 text-xs text-slate-600">
                   Verwalte deine persönlichen Daten und Zahlungsinformationen.
                 </p>
               </div>
@@ -394,47 +416,47 @@ export default function Dashboard() {
               <div className="space-y-4">
                 {/* Name */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">
                     Vollständiger Name
                   </label>
                   <input
                     type="text"
                     defaultValue="Max Mustermann"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-sm"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700/30"
                   />
                 </div>
 
                 {/* E-Mail */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">
                     E-Mail-Adresse
                   </label>
                   <input
                     type="email"
                     defaultValue="max@beispiel.de"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-sm"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700/30"
                   />
                 </div>
 
                 {/* Zahlungsmethode verwalten */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-2">
+                  <label className="mb-2 block text-xs font-semibold text-slate-700">
                     Zahlungsmethode verwalten
                   </label>
-                  <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-6 bg-slate-800 rounded flex items-center justify-center text-[10px] text-white font-bold tracking-wider">
+                      <div className="flex h-6 w-10 items-center justify-center rounded bg-slate-800 text-[10px] font-bold tracking-wider text-white">
                         VISA
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-white">Visa endend auf •••• 4242</p>
-                        <p className="text-[10px] text-gray-500">Gültig bis 12/28</p>
+                        <p className="text-xs font-bold text-slate-900">Visa endend auf •••• 4242</p>
+                        <p className="text-[10px] text-slate-500">Gültig bis 12/28</p>
                       </div>
                     </div>
                     <button 
                       type="button" 
                       onClick={() => toast.info("Zahlungsmethode ändern wird simuliert.")}
-                      className="text-xs text-violet-400 hover:text-violet-300 font-semibold transition-colors"
+                      className="text-xs font-semibold text-teal-800 transition-colors hover:text-teal-700"
                     >
                       Ändern
                     </button>
@@ -447,7 +469,7 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => setIsSettingsOpen(false)}
-                  className="flex-1 py-3 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 text-white font-semibold text-sm transition-all"
+                  className="flex-1 rounded-xl border border-slate-300 bg-white py-3 text-sm font-semibold text-slate-700 transition-all hover:border-slate-400"
                 >
                   Abbrechen
                 </button>
@@ -457,7 +479,7 @@ export default function Dashboard() {
                     toast.success("Einstellungen erfolgreich gespeichert!");
                     setIsSettingsOpen(false);
                   }}
-                  className="flex-1 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm transition-all shadow-lg shadow-violet-600/30"
+                  className="flex-1 rounded-xl bg-teal-700 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/20 transition-all hover:bg-teal-800"
                 >
                   Speichern
                 </button>

@@ -74,22 +74,13 @@ export default function ShippingStatus() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 overflow-hidden relative flex flex-col">
+    <div className="min-h-screen overflow-hidden relative flex flex-col bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
       {/* Background-Design */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl opacity-20 animate-pulse" />
+        <div className="absolute top-20 left-10 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl opacity-25 animate-pulse" />
         <div
-          className="absolute bottom-40 right-20 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl opacity-20 animate-pulse"
+          className="absolute bottom-40 right-20 w-96 h-96 bg-amber-300/20 rounded-full blur-3xl opacity-25 animate-pulse"
           style={{ animationDelay: "1s" }}
-        />
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              "url(https://d2xsxph8kpxj0f.cloudfront.net/310419663030113068/9BVyNnm67pq72smuxeHCsc/hero-gradient-bg-KJkiHKwPCDUe2rS4hxJHrk.webp)",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
         />
       </div>
 
@@ -98,14 +89,14 @@ export default function ShippingStatus() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative z-10 backdrop-blur-sm bg-slate-950/80 border-b border-slate-800"
+        className="relative z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur-md"
       >
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/dashboard" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors cursor-pointer text-sm">
+          <Link href="/dashboard" className="flex items-center gap-2 text-slate-600 hover:text-teal-800 transition-colors cursor-pointer text-sm">
             <ArrowLeft className="w-4 h-4" />
             <span>Zurück zum Dashboard</span>
           </Link>
-          <span className="text-xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
+          <span className="text-xl font-bold text-slate-950">
             Sendungsstatus
           </span>
         </div>
@@ -121,7 +112,7 @@ export default function ShippingStatus() {
             transition={{ duration: 0.6 }}
             className="w-full md:w-80 flex flex-col items-center gap-4"
           >
-            <div className="w-full aspect-[3/2] rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50 bg-slate-900/60">
+            <div className="w-full aspect-[3/2] rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-white/90">
               <img
                 src={postcard.imageUrl}
                 alt="Versendetes Motiv"
@@ -129,24 +120,24 @@ export default function ShippingStatus() {
               />
             </div>
             <div className="text-center">
-              <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Empfänger</p>
-              <h3 className="text-white font-bold text-lg">{postcard.recipientName}</h3>
-              <p className="text-gray-500 text-sm">{postcard.recipientAddress}</p>
-              <p className="text-gray-500 text-sm">{postcard.recipientCity}</p>
+              <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Empfänger</p>
+              <h3 className="text-slate-900 font-bold text-lg">{postcard.recipientName}</h3>
+              <p className="text-slate-600 text-sm">{postcard.recipientAddress}</p>
+              <p className="text-slate-600 text-sm">{postcard.recipientCity}</p>
             </div>
           </motion.div>
         )}
 
         {/* Right Column: Shipping Status Timeline */}
         <div className="flex-1 w-full max-w-lg">
-          <div className="p-6 md:p-8 rounded-3xl bg-slate-900/60 backdrop-blur-sm border border-slate-700/50 shadow-2xl">
-            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <Truck className="w-5 h-5 text-violet-400" />
+          <div className="p-6 md:p-8 rounded-3xl bg-white/90 backdrop-blur-sm border border-slate-200 shadow-[0_22px_60px_rgba(15,23,42,0.12)]">
+            <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+              <Truck className="w-5 h-5 text-teal-700" />
               <span>Zustellungsverlauf</span>
             </h2>
 
             {/* Timeline */}
-            <div className="relative border-l-2 border-slate-800 ml-4 pl-8 space-y-8 py-2">
+            <div className="relative border-l-2 border-slate-200 ml-4 pl-8 space-y-8 py-2">
               {steps.map((step, idx) => {
                 const isCompleted = currentStep > idx;
                 const isActive = currentStep === idx;
@@ -170,16 +161,16 @@ export default function ShippingStatus() {
                       <motion.div
                         animate={
                           isActive
-                            ? { scale: [1, 1.2, 1], shadow: "0 0 10px rgba(139, 92, 246, 0.5)" }
+                            ? { scale: [1, 1.2, 1], shadow: "0 0 10px rgba(15, 118, 110, 0.45)" }
                             : {}
                         }
                         transition={isActive ? { repeat: Infinity, duration: 1.5 } : {}}
                         className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                           isCompleted
-                            ? "bg-violet-600 border-violet-600 text-white"
+                            ? "bg-teal-700 border-teal-700 text-white"
                             : isActive
-                            ? "bg-slate-900 border-violet-500 text-violet-400"
-                            : "bg-slate-950 border-slate-800 text-gray-600"
+                            ? "bg-white border-teal-700 text-teal-700"
+                            : "bg-slate-100 border-slate-300 text-slate-500"
                         }`}
                       >
                         {isCompleted ? (
@@ -187,7 +178,7 @@ export default function ShippingStatus() {
                         ) : isActive ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
                         ) : (
-                          <div className="w-1.5 h-1.5 rounded-full bg-slate-700" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                         )}
                       </motion.div>
                     </div>
@@ -196,8 +187,8 @@ export default function ShippingStatus() {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2">
-                          <StepIcon className={`w-4 h-4 ${isActive ? "text-violet-400 animate-pulse" : isCompleted ? "text-violet-500" : "text-gray-600"}`} />
-                          <h3 className={`font-bold text-sm ${isActive ? "text-violet-400" : isCompleted ? "text-white" : "text-gray-500"}`}>
+                          <StepIcon className={`w-4 h-4 ${isActive ? "text-teal-700 animate-pulse" : isCompleted ? "text-teal-700" : "text-slate-500"}`} />
+                          <h3 className={`font-bold text-sm ${isActive ? "text-teal-700" : isCompleted ? "text-slate-900" : "text-slate-500"}`}>
                             {step.title}
                           </h3>
                         </div>
@@ -205,8 +196,8 @@ export default function ShippingStatus() {
                         {/* Versendet-Badge mit grünem Lämpchen */}
                         {step.badge === "Versendet" && (
                           <div className="flex items-center gap-1.5 ml-2">
-                            <span className={`w-2 h-2 rounded-full ${showVersendetBadge ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-slate-700"}`} />
-                            <span className={`text-[10px] font-bold uppercase tracking-wider ${showVersendetBadge ? "text-green-400" : "text-slate-600"}`}>
+                            <span className={`w-2 h-2 rounded-full ${showVersendetBadge ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-slate-300"}`} />
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${showVersendetBadge ? "text-green-700" : "text-slate-500"}`}>
                               {step.badge}
                             </span>
                           </div>
@@ -215,14 +206,14 @@ export default function ShippingStatus() {
                         {/* Zugestellt-Badge mit grünem Lämpchen */}
                         {step.badge === "Zugestellt" && (
                           <div className="flex items-center gap-1.5 ml-2">
-                            <span className={`w-2 h-2 rounded-full ${showZugestelltBadge ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-slate-700"}`} />
-                            <span className={`text-[10px] font-bold uppercase tracking-wider ${showZugestelltBadge ? "text-green-400" : "text-slate-600"}`}>
+                            <span className={`w-2 h-2 rounded-full ${showZugestelltBadge ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-slate-300"}`} />
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${showZugestelltBadge ? "text-green-700" : "text-slate-500"}`}>
                               {step.badge}
                             </span>
                           </div>
                         )}
                       </div>
-                      <p className="text-gray-400 text-xs leading-relaxed max-w-sm">
+                      <p className="text-slate-600 text-xs leading-relaxed max-w-sm">
                         {step.description}
                       </p>
                     </div>
@@ -239,21 +230,21 @@ export default function ShippingStatus() {
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.5, ease: "easeInOut" }}
-                  className="mt-8 pt-6 border-t border-slate-800 flex flex-col items-center gap-4 text-center overflow-hidden"
+                  className="mt-8 pt-6 border-t border-slate-200 flex flex-col items-center gap-4 text-center overflow-hidden"
                 >
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                    className="w-14 h-14 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center text-green-400 shadow-lg shadow-green-500/10"
+                    className="w-14 h-14 rounded-full bg-green-500/15 border border-green-500/40 flex items-center justify-center text-green-700 shadow-lg shadow-green-500/10"
                   >
                     <Check className="w-8 h-8" />
                   </motion.div>
                   <div>
-                    <h3 className="text-white font-bold text-base mb-1">
+                    <h3 className="text-slate-900 font-bold text-base mb-1">
                       Postkarte erfolgreich zugestellt!
                     </h3>
-                    <p className="text-gray-400 text-xs max-w-xs">
+                    <p className="text-slate-600 text-xs max-w-xs">
                       Deine Postkarte ist auf dem Weg in den echten Briefkasten.
                     </p>
                   </div>
@@ -261,7 +252,7 @@ export default function ShippingStatus() {
                     <motion.div
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold shadow-lg shadow-violet-600/30 transition-all text-center"
+                      className="w-full py-3 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold shadow-lg shadow-emerald-900/20 transition-all text-center"
                     >
                       Zurück zu meinen Postkarten
                     </motion.div>
