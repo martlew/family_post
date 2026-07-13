@@ -5,26 +5,26 @@ import { Link } from "wouter";
 const steps = [
   {
     icon: Camera,
-    title: "Foto auswählen",
+    title: "Teile einen Moment",
     description: "Wähle deinen schönsten Moment aus dem Urlaub oder aus dem Alltag aus.",
   },
   {
     icon: Pencil,
-    title: "Nachricht schreiben",
+    title: "Sag etwas Persönliches",
     description: "Füge ein paar persönliche Worte hinzu, die wirklich ankommen.",
   },
   {
     icon: Send,
-    title: "Wir kümmern uns um den Rest.",
+    title: "Wir bringen Freude in den Briefkasten",
     description: "Druck, Versand und Zustellung laufen im Hintergrund für dich.",
   },
 ];
 
 const benefits = [
-  { icon: "🖼️", title: "Bleibt sichtbar." },
-  { icon: "📬", title: "Braucht keine App." },
-  { icon: "❤️", title: "Persönlicher." },
-  { icon: "🌍", title: "Weltweit." },
+  { icon: "📷", title: "Bleibt sichtbar", description: "Keine Erinnerung verschwindet im Chat." },
+  { icon: "📬", title: "Kein Smartphone nötig", description: "Ein Briefkasten genügt." },
+  { icon: "❤️", title: "Persönlicher", description: "Jede Karte ist ein Unikat." },
+  { icon: "🌍", title: "Weltweit", description: "Fast jede Adresse ist erreichbar." },
 ];
 
 export default function Home() {
@@ -55,12 +55,6 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="px-4 pt-6">
-          <div className="mx-auto max-w-6xl rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-center text-sm font-semibold text-emerald-800 shadow-sm">
-            ★★★★★ Schon heute entstehen aus digitalen Fotos echte Erinnerungen.
-          </div>
-        </section>
-
         <section className="px-4 py-10 md:py-16">
           <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-[1.05fr_0.95fr]">
             <div>
@@ -74,22 +68,17 @@ export default function Home() {
               <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 md:text-xl">
                 Jeden Tag verschwinden unzählige Erinnerungen in Chatverläufen und Cloudspeichern. Family Post verwandelt deine schönsten Momente in echte Postkarten, die im Briefkasten deiner Liebsten ankommen – persönlich, greifbar und voller Bedeutung.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-8">
                 <Link href="/register">
-                  <Button className="rounded-full bg-teal-700 px-6 py-6 text-base font-semibold text-white hover:bg-teal-800">
-                    Jetzt Freude versenden
+                  <Button className="rounded-full bg-teal-700 px-7 py-6 text-base font-semibold text-white hover:bg-teal-800 md:text-lg">
+                    🟢 Jetzt Erinnerung versenden
                   </Button>
                 </Link>
-                <Link href="/register">
-                  <Button variant="outline" className="rounded-full border-slate-300 bg-white px-6 py-6 text-base text-slate-800 hover:bg-slate-50">
-                    Jetzt Erinnerung verschicken
-                  </Button>
-                </Link>
-                <Link href="/register">
-                  <Button variant="outline" className="rounded-full border-slate-300 bg-white px-6 py-6 text-base text-slate-800 hover:bg-slate-50">
-                    Oma überraschen
-                  </Button>
-                </Link>
+                <p className="mt-3 text-sm text-slate-500">In weniger als einer Minute erstellt.</p>
+              </div>
+              <div className="mt-7 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold leading-relaxed text-emerald-900 shadow-sm md:text-base">
+                Bereits Testsendungen aus Spanien/Ronda erreichten Deutschland in nur zwei Tagen.*
+                <p className="mt-1 text-xs font-medium text-emerald-800/90">* Lieferzeiten können je nach Zielort und Postlauf variieren.</p>
               </div>
             </div>
 
@@ -106,9 +95,15 @@ export default function Home() {
                 />
               </div>
               <p className="px-2 pt-3 text-sm text-slate-500">
-                Loop von emotion_004: Oma, slow motion, kein Ton, Kino-Look.
+                Eine echte Erinnerung.
               </p>
             </div>
+          </div>
+        </section>
+
+        <section className="px-4 pb-6 md:pb-10">
+          <div className="mx-auto max-w-6xl rounded-full border border-teal-200/80 bg-white/85 px-4 py-3 text-center text-sm font-semibold text-teal-900 shadow-sm">
+            ⭐ Premium-Druck &nbsp; | &nbsp; 🌍 Weltweiter Versand &nbsp; | &nbsp; 📬 Direkt in den Briefkasten &nbsp; | &nbsp; ❤️ Persönliche Unikate
           </div>
         </section>
 
@@ -119,7 +114,7 @@ export default function Home() {
               Das emotionale Problem
             </div>
             <p className="max-w-4xl text-2xl font-semibold leading-relaxed text-slate-900 md:text-3xl">
-              Manche Menschen haben kein Smartphone. Aber sie haben einen Briefkasten. Family Post verbindet Generationen.
+              Oma wartet nicht auf WhatsApp. Sie wartet auf Post. Und genau deshalb gibt es Family Post.
             </p>
           </div>
         </section>
@@ -141,17 +136,6 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="px-4 py-4 md:py-8">
-          <div className="mx-auto max-w-6xl rounded-[28px] border border-teal-200 bg-gradient-to-r from-teal-900 via-teal-800 to-emerald-800 p-8 text-white shadow-[0_28px_80px_rgba(15,118,110,0.28)] md:p-10">
-            <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-teal-100">Unser USP</p>
-            <h2 className="max-w-3xl text-3xl font-black leading-tight md:text-5xl">Wie schnell kann eine Urlaubserinnerung ankommen?</h2>
-            <p className="mt-5 max-w-3xl text-lg leading-relaxed text-teal-50">
-              Eine Testsendung aus Ronda erreichte Deutschland bereits nach zwei Tagen. So kommen Erinnerungen oft deutlich schneller bei deinen Liebsten an als mit herkömmlicher Urlaubspost.
-            </p>
-            <p className="mt-4 text-sm text-teal-100">Lieferzeiten können je nach Zielort und Postlauf variieren.</p>
-          </div>
-        </section>
-
         <section className="px-4 py-12 md:py-16">
           <div className="mx-auto max-w-6xl">
             <h2 className="text-3xl font-black tracking-tight text-slate-950 md:text-5xl">Der haptische Nutzen</h2>
@@ -160,6 +144,7 @@ export default function Home() {
                 <article key={benefit.title} className="rounded-[24px] border border-slate-200 bg-white p-6 text-center shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
                   <span className="mb-3 block text-3xl">{benefit.icon}</span>
                   <h3 className="text-lg font-bold text-slate-950">{benefit.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{benefit.description}</p>
                 </article>
               ))}
             </div>
@@ -168,8 +153,8 @@ export default function Home() {
       </main>
 
       <footer className="px-4 pb-12 pt-4 md:pb-16">
-        <div className="mx-auto max-w-6xl rounded-[24px] bg-slate-950 px-6 py-8 text-center text-lg font-medium leading-relaxed text-slate-100 shadow-[0_24px_70px_rgba(15,23,42,0.25)] md:text-xl">
-          "Wir verkaufen keine Postkarten. Wir helfen Menschen dabei, Erinnerungen dauerhaft sichtbar zu machen."
+        <div className="mx-auto max-w-6xl rounded-[24px] bg-slate-950 px-6 py-10 text-center text-2xl font-semibold leading-relaxed text-slate-100 shadow-[0_24px_70px_rgba(15,23,42,0.25)] md:text-4xl">
+          Wir verkaufen keine Postkarten. Wir machen Erinnerungen sichtbar. – Family Post
         </div>
       </footer>
     </div>
