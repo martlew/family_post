@@ -150,6 +150,34 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <section className="px-4 pb-10 md:pb-14">
+          <div className="mx-auto max-w-6xl">
+            <div className="text-center">
+              <h2 className="text-3xl font-black tracking-tight text-slate-950 md:text-5xl">Preise, die Erinnerungen fair machen</h2>
+              <p className="mt-3 text-base text-slate-600 md:text-lg">All-inclusive mit Premium-Druck, echtem Porto und weltweitem Versand.</p>
+            </div>
+            <div className="mt-8 grid gap-5 md:grid-cols-3">
+              <article className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-800">Einzelticket</p>
+                <p className="mt-4 text-4xl font-black text-slate-950">3,99 €</p>
+                <p className="mt-2 text-sm text-slate-600">Für eine Postkarte ohne Abo und ohne Mindestlaufzeit.</p>
+              </article>
+
+              <article className="rounded-[24px] border border-emerald-300 bg-gradient-to-b from-emerald-50 to-white p-6 shadow-[0_22px_60px_rgba(15,118,110,0.16)]">
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-800">Family-Paket (5er)</p>
+                <p className="mt-4 text-4xl font-black text-slate-950">18,99 €</p>
+                <p className="mt-2 text-sm text-slate-700">Für 5 Postkarten, kein Ablaufdatum, gemeinsam in der Familie nutzbar.</p>
+              </article>
+
+              <article className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-800">Vorteils-Paket (10er)</p>
+                <p className="mt-4 text-4xl font-black text-slate-950">34,99 €</p>
+                <p className="mt-2 text-sm text-slate-600">Für 10 Postkarten, kein Ablaufdatum, ideal für Vielschreiber.</p>
+              </article>
+            </div>
+          </div>
+        </section>
       </main>
 
       <footer className="px-4 pb-12 pt-4 md:pb-16">

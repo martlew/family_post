@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
 
 /**
@@ -156,12 +157,13 @@ export default function Login() {
               </div>
 
               <div className="flex justify-end">
-                <a
-                  href="#"
+                <button
+                  type="button"
+                  onClick={() => toast.info("Passwort-Reset folgt in der naechsten Ausbaustufe.")}
                   className="text-sm text-teal-800 hover:text-teal-700 transition-colors"
                 >
                   Passwort vergessen?
-                </a>
+                </button>
               </div>
 
               <motion.button

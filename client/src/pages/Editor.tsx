@@ -43,12 +43,53 @@ export default function Editor() {
   const [message, setMessage] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [recipientAddress, setRecipientAddress] = useState("");
+  const [recipientPostalCode, setRecipientPostalCode] = useState("");
   const [recipientCity, setRecipientCity] = useState("");
+  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
+  const [isPostalLookupLoading, setIsPostalLookupLoading] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"image" | "text">("image");
   const [promoCode, setPromoCode] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePostalLookup = async (postalCode: string) => {
+    if (!/^\d{5}$/.test(postalCode)) {
+      setCitySuggestions([]);
+      return;
+    }
+
+    try {
+      setIsPostalLookupLoading(true);
+      const response = await fetch(`https://api.zippopotam.us/de/${postalCode}`);
+      if (!response.ok) {
+        setCitySuggestions([]);
+        return;
+      }
+
+      const data = await response.json();
+      const suggestions = Array.from(
+        new Set(
+          (data?.places ?? [])
+            .map((place: { "place name"?: string; state?: string }) => {
+              const placeName = place["place name"];
+              if (!placeName) return "";
+              return place.state ? `${placeName} (${place.state})` : placeName;
+            })
+            .filter(Boolean),
+        ),
+      );
+
+      setCitySuggestions(suggestions);
+      if (!recipientCity && suggestions.length === 1) {
+        setRecipientCity(suggestions[0]);
+      }
+    } catch {
+      setCitySuggestions([]);
+    } finally {
+      setIsPostalLookupLoading(false);
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -81,8 +122,14 @@ export default function Editor() {
       setActiveTab("text");
       return;
     }
-    if (!recipientName || !recipientAddress || !recipientCity) {
+    if (!recipientName || !recipientAddress || !recipientPostalCode || !recipientCity) {
       toast.error("Bitte fülle die Empfänger-Daten vollständig aus!");
+      setActiveTab("text");
+      return;
+    }
+
+    if (!/^\d{5}$/.test(recipientPostalCode)) {
+      toast.error("Bitte gib eine gültige 5-stellige PLZ ein.");
       setActiveTab("text");
       return;
     }
@@ -101,7 +148,7 @@ export default function Editor() {
         message,
         recipientName,
         recipientAddress,
-        recipientCity,
+        recipientCity: `${recipientPostalCode} ${recipientCity}`,
         isPromoPaid,
         createdAt: new Date().toLocaleDateString("de-DE", {
           day: "numeric",
@@ -240,7 +287,11 @@ export default function Editor() {
                       {recipientAddress || <span className="text-gray-400">Straße & Hausnummer</span>}
                     </div>
                     <div className="border-b border-gray-300 pb-1 min-h-[20px]">
-                      {recipientCity || <span className="text-gray-400">PLZ & Ort</span>}
+                      {recipientPostalCode || recipientCity ? (
+                        `${recipientPostalCode} ${recipientCity}`.trim()
+                      ) : (
+                        <span className="text-gray-400">PLZ & Ort</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -425,23 +476,56 @@ export default function Editor() {
                     />
                   </div>
 
-                  {/* Empfänger PLZ / Ort */}
+                  {/* Empfänger PLZ */}
+                  <div>
+                    <label htmlFor="rec-postal" className="block text-sm font-semibold text-slate-700 mb-1.5">
+                      PLZ
+                    </label>
+                    <input
+                      id="rec-postal"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]{5}"
+                      maxLength={5}
+                      required
+                      value={recipientPostalCode}
+                      onChange={(e) => {
+                        const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 5);
+                        setRecipientPostalCode(digitsOnly);
+                        setIsFlipped(true);
+                        void handlePostalLookup(digitsOnly);
+                      }}
+                      placeholder="12345"
+                      className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-700/30 focus:border-teal-700/40 transition-all text-sm"
+                    />
+                    <div className="mt-1 text-[10px] text-slate-500">
+                      {isPostalLookupLoading ? "PLZ wird geprüft..." : "5-stellige deutsche Postleitzahl"}
+                    </div>
+                  </div>
+
+                  {/* Empfänger Ort */}
                   <div>
                     <label htmlFor="rec-city" className="block text-sm font-semibold text-slate-700 mb-1.5">
-                      PLZ & Ort
+                      Ort
                     </label>
                     <input
                       id="rec-city"
                       type="text"
                       required
+                      list="city-suggestions"
                       value={recipientCity}
                       onChange={(e) => {
                         setRecipientCity(e.target.value);
                         setIsFlipped(true);
                       }}
-                      placeholder="12345 Schöningen"
+                      placeholder="z. B. Schöningen"
                       className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-700/30 focus:border-teal-700/40 transition-all text-sm"
                     />
+                    <datalist id="city-suggestions">
+                      {citySuggestions.map((city) => (
+                        <option key={city} value={city} />
+                      ))}
+                    </datalist>
                   </div>
 
                   {/* Gutscheincode */}
