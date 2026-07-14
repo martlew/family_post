@@ -5,14 +5,14 @@ type BrandMarkProps = {
 
 export default function BrandMark({ className = "", compact = false }: BrandMarkProps) {
   const sizeClass = compact
-    ? "h-12 w-auto max-w-[210px] sm:h-14 sm:max-w-[240px]"
-    : "h-16 w-auto max-w-[280px] sm:h-20 sm:max-w-[360px]";
+    ? "h-12 sm:h-14 md:h-16 w-auto shrink-0 object-contain"
+    : "h-14 sm:h-16 md:h-20 w-auto shrink-0 object-contain";
 
   return (
     <img
       src="/logo.svg"
       alt="FamilyPost Logo"
-      className={`block object-contain ${sizeClass} ${className}`}
+      className={`block ${sizeClass} ${className}`}
     />
   );
 }
