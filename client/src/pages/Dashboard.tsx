@@ -4,6 +4,8 @@ import { Camera, Mail, Plus, Settings, X, RotateCw, CreditCard } from "lucide-re
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { clearAuthSession, getAuthSession } from "@/lib/auth";
+import FloatingPostcards from "@/components/FloatingPostcards";
+import BrandMark from "@/components/BrandMark";
 
 interface Postcard {
   id: string;
@@ -21,15 +23,6 @@ export default function Dashboard() {
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isModalFlipped, setIsModalFlipped] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  const floatingCards = [
-    { left: "6%", top: "22%", duration: 24, delay: 0 },
-    { left: "18%", top: "72%", duration: 28, delay: 2 },
-    { left: "34%", top: "18%", duration: 26, delay: 1 },
-    { left: "52%", top: "78%", duration: 30, delay: 3 },
-    { left: "68%", top: "24%", duration: 27, delay: 1.5 },
-    { left: "82%", top: "68%", duration: 25, delay: 0.5 },
-  ];
 
   useEffect(() => {
     if (!getAuthSession()) {
@@ -70,36 +63,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen overflow-hidden relative flex flex-col bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
-      {/* Dashboard background with subtle floating postcards */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl opacity-30 animate-pulse" />
-        <div
-          className="absolute bottom-40 right-20 w-96 h-96 bg-amber-300/20 rounded-full blur-3xl opacity-30 animate-pulse"
-          style={{ animationDelay: "1s" }}
-        />
-        {floatingCards.map((card, index) => (
-          <motion.div
-            key={`${card.left}-${card.top}`}
-            className="absolute h-8 w-12 rounded-md border border-emerald-200/80 bg-white/75 shadow-[0_10px_28px_rgba(15,118,110,0.12)]"
-            style={{ left: card.left, top: card.top }}
-            animate={{
-              y: [0, -20, 0],
-              x: [0, index % 2 === 0 ? 10 : -10, 0],
-              rotate: [-4, 3, -4],
-              opacity: [0.1, 0.2, 0.1],
-            }}
-            transition={{
-              duration: card.duration,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: card.delay,
-            }}
-          >
-            <div className="mx-1 mt-1 h-[2px] w-5 rounded bg-emerald-300/70" />
-            <div className="mx-1 mt-1 h-[2px] w-8 rounded bg-emerald-200/70" />
-          </motion.div>
-        ))}
-      </div>
+      <FloatingPostcards className="opacity-75" />
 
       {/* Navigation */}
       <motion.nav
@@ -108,19 +72,15 @@ export default function Dashboard() {
         transition={{ duration: 0.6 }}
         className="relative z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur-md"
       >
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" className="flex items-center gap-3 cursor-pointer">
-            <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663030113068/9BVyNnm67pq72smuxeHCsc/familypost-logo-isbKPGHDYE6gpsAJ5vRCgv.webp"
-              alt="FamilyPost Logo"
-              className="w-8 h-8"
-            />
+            <BrandMark compact />
             <span className="text-xl font-bold text-slate-950">
               FamilyPost
             </span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 self-start sm:self-auto">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -142,7 +102,7 @@ export default function Dashboard() {
       </motion.nav>
 
       {/* Content */}
-      <div className="relative z-10 flex-1 max-w-6xl mx-auto w-full px-4 py-12">
+      <div className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-12">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

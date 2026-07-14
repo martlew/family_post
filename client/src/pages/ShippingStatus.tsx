@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useParams } from "wouter";
 import { ArrowLeft, Check, ClipboardList, Loader2, Mail, MapPin, Printer, Truck } from "lucide-react";
-import { getAuthSession } from "@/lib/auth";
+import { buildApiUrl, getAuthSession } from "@/lib/auth";
+import FloatingPostcards from "@/components/FloatingPostcards";
 
 interface Postcard {
   id: string;
@@ -20,14 +21,6 @@ export default function ShippingStatus() {
   const [postcard, setPostcard] = useState<Postcard | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
 
-  const floatingCards = [
-    { left: "7%", top: "23%", duration: 24, delay: 0 },
-    { left: "22%", top: "74%", duration: 28, delay: 2 },
-    { left: "46%", top: "18%", duration: 26, delay: 1 },
-    { left: "64%", top: "76%", duration: 30, delay: 3 },
-    { left: "84%", top: "26%", duration: 27, delay: 1.5 },
-  ];
-
   useEffect(() => {
     if (!getAuthSession()) {
       navigate("/login");
@@ -41,10 +34,35 @@ export default function ShippingStatus() {
         const found = list.find((item) => item.id === params.id);
         if (found) {
           setPostcard(found);
+          return;
         }
       } catch (e) {
         console.error("Fehler beim Laden der Postkarte für Status:", e);
       }
+    }
+
+    if (params.id) {
+      void fetch(buildApiUrl(`/api/postcards/${params.id}`))
+        .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+          if (!ok || !data?.postcard) {
+            return;
+          }
+
+          const postcardData = data.postcard as Postcard;
+          setPostcard({
+            id: postcardData.id,
+            imageUrl: postcardData.imageUrl,
+            message: postcardData.message,
+            recipientName: postcardData.recipientName,
+            recipientAddress: postcardData.recipientAddress,
+            recipientCity: postcardData.recipientCity,
+            createdAt: postcardData.createdAt,
+          });
+        })
+        .catch((error) => {
+          console.error("Fehler beim Laden der Postkarte vom Backend:", error);
+        });
     }
   }, [navigate, params.id]);
 
@@ -90,36 +108,7 @@ export default function ShippingStatus() {
 
   return (
     <div className="min-h-screen overflow-hidden relative flex flex-col bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
-      {/* Background-Design */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl opacity-25 animate-pulse" />
-        <div
-          className="absolute bottom-40 right-20 w-96 h-96 bg-amber-300/20 rounded-full blur-3xl opacity-25 animate-pulse"
-          style={{ animationDelay: "1s" }}
-        />
-        {floatingCards.map((card, index) => (
-          <motion.div
-            key={`${card.left}-${card.top}`}
-            className="absolute h-8 w-12 rounded-md border border-emerald-200/80 bg-white/75 shadow-[0_10px_28px_rgba(15,118,110,0.12)]"
-            style={{ left: card.left, top: card.top }}
-            animate={{
-              y: [0, -18, 0],
-              x: [0, index % 2 === 0 ? 8 : -8, 0],
-              rotate: [-4, 3, -4],
-              opacity: [0.1, 0.2, 0.1],
-            }}
-            transition={{
-              duration: card.duration,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: card.delay,
-            }}
-          >
-            <div className="mx-1 mt-1 h-[2px] w-5 rounded bg-emerald-300/70" />
-            <div className="mx-1 mt-1 h-[2px] w-8 rounded bg-emerald-200/70" />
-          </motion.div>
-        ))}
-      </div>
+      <FloatingPostcards className="opacity-75" />
 
       {/* Navigation */}
       <motion.nav
@@ -128,8 +117,8 @@ export default function ShippingStatus() {
         transition={{ duration: 0.6 }}
         className="relative z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur-md"
       >
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/dashboard" className="flex items-center gap-2 text-slate-600 hover:text-teal-800 transition-colors cursor-pointer text-sm">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <Link href="/dashboard" className="flex items-center gap-2 text-sm text-slate-600 transition-colors cursor-pointer hover:text-teal-800">
             <ArrowLeft className="w-4 h-4" />
             <span>Zurück zum Dashboard</span>
           </Link>
@@ -140,14 +129,14 @@ export default function ShippingStatus() {
       </motion.nav>
 
       {/* Main Layout */}
-      <div className="relative z-10 flex-1 max-w-5xl mx-auto w-full px-4 py-12 flex flex-col md:flex-row gap-8 items-center justify-center">
+      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-8 px-4 py-8 md:flex-row md:py-12">
         {/* Left Column: Postcard preview */}
         {postcard && (
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="w-full md:w-80 flex flex-col items-center gap-4"
+            className="flex w-full flex-col items-center gap-4 md:w-80"
           >
             <div className="w-full aspect-[3/2] rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-white/90">
               <img
@@ -166,8 +155,8 @@ export default function ShippingStatus() {
         )}
 
         {/* Right Column: Shipping Status Timeline */}
-        <div className="flex-1 w-full max-w-lg">
-          <div className="p-6 md:p-8 rounded-3xl bg-white/90 backdrop-blur-sm border border-slate-200 shadow-[0_22px_60px_rgba(15,23,42,0.12)]">
+        <div className="w-full flex-1 max-w-lg">
+          <div className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-[0_22px_60px_rgba(15,23,42,0.12)] backdrop-blur-sm md:p-8">
             <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
               <Truck className="w-5 h-5 text-teal-700" />
               <span>Zustellungsverlauf</span>
@@ -196,11 +185,7 @@ export default function ShippingStatus() {
                     {/* Circle Indicator on line */}
                     <div className="absolute -left-[43px] top-1 flex items-center justify-center">
                       <motion.div
-                        animate={
-                          isActive
-                            ? { scale: [1, 1.2, 1], shadow: "0 0 10px rgba(15, 118, 110, 0.45)" }
-                            : {}
-                        }
+                        animate={isActive ? { scale: [1, 1.2, 1], boxShadow: "0 0 10px rgba(15, 118, 110, 0.45)" } : {}}
                         transition={isActive ? { repeat: Infinity, duration: 1.5 } : {}}
                         className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                           isCompleted

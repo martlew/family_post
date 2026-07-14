@@ -1,0 +1,33 @@
+<svg width="640" height="180" viewBox="0 0 640 180" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title>Family Post Logo</title>
+  <desc>Briefkasten-Icon links mit dem Schriftzug Family Post und der Subline Erinnerungen, die ankommen.</desc>
+  <defs>
+    <linearGradient id="bg" x1="28" y1="18" x2="612" y2="168" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset="0.62" stop-color="#ecfdf5"/>
+      <stop offset="1" stop-color="#fef3c7"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="18" y1="14" x2="160" y2="154" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0f766e"/>
+      <stop offset="1" stop-color="#134e4a"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="8" y="8" width="624" height="164" rx="34" fill="url(#bg)" stroke="#a7f3d0" stroke-width="4"/>
+
+  <g transform="translate(28 28)">
+    <rect x="0" y="0" width="124" height="124" rx="28" fill="#ffffff" stroke="#bbf7d0" stroke-width="4"/>
+    <path d="M18 32H106" stroke="url(#accent)" stroke-width="6" stroke-linecap="round"/>
+    <path d="M18 52H106" stroke="#f59e0b" stroke-width="6" stroke-linecap="round" opacity="0.95"/>
+    <path d="M18 72H80" stroke="url(#accent)" stroke-width="6" stroke-linecap="round" opacity="0.85"/>
+    <rect x="18" y="90" width="52" height="16" rx="8" fill="#0f766e" opacity="0.12"/>
+    <path d="M74 24L79 35L91 37L82 46L84 58L74 52L64 58L66 46L57 37L69 35L74 24Z" fill="#0f766e"/>
+    <circle cx="34" cy="96" r="14" fill="#0f766e" opacity="0.12"/>
+    <path d="M34 80L39 90L50 92L42 100L44 112L34 106L24 112L26 100L18 92L29 90L34 80Z" fill="#0f766e"/>
+  </g>
+
+  <g transform="translate(182 52)">
+    <text x="0" y="46" font-family="Inter, Arial, Helvetica, sans-serif" font-size="52" font-weight="800" fill="#0f172a" letter-spacing="-1.8">Family Post</text>
+    <text x="2" y="86" font-family="Inter, Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#0f766e" letter-spacing="4">ERINNERUNGEN, DIE ANKOMMEN</text>
+  </g>
+</svg>

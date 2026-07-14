@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Camera, Globe2, Heart, Pencil, Send, SmartphoneNfc, Star } from "lucide-react";
+import { Camera, Globe2, Heart, Pencil, Send, SmartphoneNfc } from "lucide-react";
 import { Link } from "wouter";
 import { setSelectedPlan } from "@/lib/auth";
+import BrandMark from "@/components/BrandMark";
 
 const steps = [
   {
@@ -22,10 +23,10 @@ const steps = [
 ];
 
 const benefits = [
-  { icon: "📷", title: "Bleibt sichtbar", description: "Keine Erinnerung verschwindet im Chat." },
-  { icon: "📬", title: "Kein Smartphone nötig", description: "Ein Briefkasten genügt." },
-  { icon: "❤️", title: "Persönlicher", description: "Jede Karte ist ein Unikat." },
-  { icon: "🌍", title: "Weltweit", description: "Fast jede Adresse ist erreichbar." },
+  { icon: "📷", title: "Bleibt sichtbar", description: "Keine Erinnerung verschwindet im Chatverlauf." },
+  { icon: "📬", title: "Kommt im echten Leben an", description: "Ein Briefkasten genügt - kein Smartphone nötig." },
+  { icon: "❤️", title: "Fühlt sich persönlicher an", description: "Jede Karte wird zu einem kleinen Unikat." },
+  { icon: "🌍", title: "Kommt weltweit an", description: "Fast jede Adresse kann erreicht werden." },
 ];
 
 export default function Home() {
@@ -34,26 +35,24 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
+    <div className="min-h-dvh bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-700 text-white shadow-md">
-              <Heart className="h-5 w-5" />
-            </div>
+            <BrandMark />
             <div>
               <p className="text-lg font-bold tracking-tight">Family Post</p>
               <p className="text-xs text-slate-500">Erinnerungen, die ankommen</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
             <Link href="/login">
-              <Button variant="outline" className="rounded-full border-slate-300 bg-white text-slate-800 hover:bg-slate-50">
+              <Button variant="outline" className="w-full rounded-full border-slate-300 bg-white text-slate-800 hover:bg-slate-50 sm:w-auto">
                 Anmelden
               </Button>
             </Link>
             <Link href="/register">
-              <Button className="rounded-full bg-teal-700 text-white hover:bg-teal-800">Jetzt Freude versenden</Button>
+              <Button className="w-full rounded-full bg-teal-700 text-white hover:bg-teal-800 sm:w-auto">Jetzt Freude versenden</Button>
             </Link>
           </div>
         </div>
@@ -62,40 +61,37 @@ export default function Home() {
       <main>
         <section className="px-4 py-10 md:py-16">
           <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-[1.05fr_0.95fr]">
-            <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-800">
-                <Star className="h-4 w-4" />
-                Vertrauen & Hero-Section
-              </div>
-              <h1 className="max-w-3xl text-4xl font-black leading-tight tracking-tight text-slate-950 md:text-6xl">
+            <div className="text-center md:text-left">
+              <h1 className="mx-auto max-w-3xl text-4xl font-black leading-tight tracking-tight text-slate-950 md:mx-0 md:text-6xl">
                 Echte Erinnerungen verdienen einen echten Platz im Leben.
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 md:text-xl">
-                Jeden Tag verschwinden unzählige Erinnerungen in Chatverläufen und Cloudspeichern. Family Post verwandelt deine schönsten Momente in echte Postkarten, die im Briefkasten deiner Liebsten ankommen – persönlich, greifbar und voller Bedeutung.
+              <div className="mx-auto mt-6 max-w-2xl rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left text-sm font-semibold leading-relaxed text-emerald-900 shadow-sm md:mx-0 md:text-base">
+                <p>Viele unserer Postkarten erreichen ihre Empfänger innerhalb weniger Tage.</p>
+                <p className="mt-1">So kam beispielsweise eine Sendung aus Ronda (Spanien) bereits nach zwei Tagen in Deutschland an.*</p>
+                <p className="mt-1 text-xs font-medium text-emerald-800/90">* Die Lieferzeit kann je nach Zielland und Postlauf variieren.</p>
+              </div>
+              <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-slate-600 md:mx-0 md:text-xl">
+                Family Post verwandelt deine schönsten Momente in echte Postkarten, die im Briefkasten deiner Liebsten ankommen - persönlich, greifbar und voller Bedeutung.
               </p>
-              <div className="mt-8">
+              <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-start">
                 <Link href="/register">
-                  <Button className="rounded-full bg-teal-700 px-7 py-6 text-base font-semibold text-white hover:bg-teal-800 md:text-lg">
+                  <Button className="w-full rounded-full bg-teal-700 px-7 py-6 text-base font-semibold text-white hover:bg-teal-800 md:text-lg sm:w-auto">
                     🟢 Jetzt Erinnerung versenden
                   </Button>
                 </Link>
-                <p className="mt-3 text-sm text-slate-500">In weniger als einer Minute erstellt.</p>
-              </div>
-              <div className="mt-7 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold leading-relaxed text-emerald-900 shadow-sm md:text-base">
-                Bereits Testsendungen aus Spanien/Ronda erreichten Deutschland in nur zwei Tagen.*
-                <p className="mt-1 text-xs font-medium text-emerald-800/90">* Lieferzeiten können je nach Zielort und Postlauf variieren.</p>
+                <p className="text-sm text-slate-500">In weniger als einer Minute erstellt.</p>
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-slate-200 bg-white/90 p-3 shadow-[0_22px_70px_rgba(15,23,42,0.16)] backdrop-blur-sm">
+            <div className="mx-auto w-full max-w-md rounded-[28px] border border-slate-200 bg-white/90 p-3 shadow-[0_22px_70px_rgba(15,23,42,0.16)] backdrop-blur-sm md:max-w-none">
               <div className="overflow-hidden rounded-[22px] bg-slate-950">
                 <video
                   className="aspect-[9/16] w-full object-cover"
                   src="/emotion_004.mp4"
-                  autoPlay
-                  loop
                   muted
                   playsInline
+                  autoPlay
+                  loop
                   preload="metadata"
                 />
               </div>
@@ -107,7 +103,7 @@ export default function Home() {
         </section>
 
         <section className="px-4 pb-6 md:pb-10">
-          <div className="mx-auto max-w-6xl rounded-full border border-teal-200/80 bg-white/85 px-4 py-3 text-center text-sm font-semibold text-teal-900 shadow-sm">
+          <div className="mx-auto max-w-6xl rounded-2xl border border-teal-200/80 bg-white/85 px-4 py-3 text-center text-sm font-semibold text-teal-900 shadow-sm sm:rounded-full">
             ⭐ Premium-Druck &nbsp; | &nbsp; 🌍 Weltweiter Versand &nbsp; | &nbsp; 📬 Direkt in den Briefkasten &nbsp; | &nbsp; ❤️ Persönliche Unikate
           </div>
         </section>
@@ -119,7 +115,7 @@ export default function Home() {
               Das emotionale Problem
             </div>
             <p className="max-w-4xl text-2xl font-semibold leading-relaxed text-slate-900 md:text-3xl">
-              Oma wartet nicht auf WhatsApp. Sie wartet auf Post. Und genau deshalb gibt es Family Post.
+              Family Post bringt genau diese Momente zurück.
             </p>
           </div>
         </section>

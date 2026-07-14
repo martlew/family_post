@@ -4,6 +4,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
 import { buildApiUrl, getSelectedPlan, setAuthSession } from "@/lib/auth";
+import FloatingPostcards from "@/components/FloatingPostcards";
+import BrandMark from "@/components/BrandMark";
 
 /**
  * FamilyPost Login Page in the same warm visual system as the landing page.
@@ -79,14 +81,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden relative flex flex-col bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl opacity-25 animate-pulse" />
-        <div
-          className="absolute bottom-40 right-20 w-96 h-96 bg-amber-300/20 rounded-full blur-3xl opacity-25 animate-pulse"
-          style={{ animationDelay: "1s" }}
-        />
-      </div>
+    <div className="min-h-dvh overflow-hidden relative flex flex-col bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
+      <FloatingPostcards className="opacity-45" />
 
       {/* Navigation */}
       <motion.nav
@@ -95,16 +91,12 @@ export default function Login() {
         transition={{ duration: 0.6 }}
         className="relative z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur-md"
       >
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <Link
             href="/"
             className="flex items-center gap-3"
           >
-            <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663030113068/9BVyNnm67pq72smuxeHCsc/familypost-logo-isbKPGHDYE6gpsAJ5vRCgv.webp"
-              alt="FamilyPost Logo"
-              className="w-8 h-8"
-            />
+            <BrandMark compact />
             <span className="text-xl font-bold text-slate-950">
               FamilyPost
             </span>
@@ -113,16 +105,16 @@ export default function Login() {
       </motion.nav>
 
       {/* Content */}
-      <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-16">
+      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-10 sm:py-16">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
           className="w-full max-w-md"
         >
-          <div className="rounded-2xl border border-slate-200 bg-white/90 p-8 shadow-[0_22px_70px_rgba(15,23,42,0.14)] backdrop-blur-sm">
-            <div className="text-center mb-8">
-              <h1 className="text-2xl md:text-3xl font-black text-slate-950 mb-2">
+          <div className="rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-[0_22px_70px_rgba(15,23,42,0.14)] backdrop-blur-sm sm:p-8">
+            <div className="mb-8 text-center">
+              <h1 className="mb-2 text-2xl font-black text-slate-950 md:text-3xl">
                 Willkommen zurück
               </h1>
               <p className="text-slate-600 text-sm">
@@ -213,7 +205,7 @@ export default function Login() {
                 disabled={isLoading}
                 whileHover={{ scale: isLoading ? 1 : 1.02 }}
                 whileTap={{ scale: isLoading ? 1 : 0.98 }}
-                className="w-full group px-6 py-4 rounded-xl bg-teal-700 text-white font-bold text-lg hover:bg-teal-800 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-6 py-4 text-lg font-bold text-white transition-all duration-300 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoading ? "Wird angemeldet…" : "Anmelden"}
                 {!isLoading && (
@@ -250,7 +242,7 @@ export default function Login() {
       </div>
 
       {showResetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
           <div
             className="absolute inset-0 bg-slate-900/45 backdrop-blur-sm"
             onClick={() => setShowResetModal(false)}
@@ -258,7 +250,7 @@ export default function Login() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+            className="relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6"
           >
             <h2 className="text-xl font-black text-slate-950">Passwort zuruecksetzen</h2>
             <p className="mt-2 text-sm text-slate-600">Gib die E-Mail-Adresse deines Kontos ein. Wir senden einen Reset-Hinweis.</p>
@@ -271,7 +263,7 @@ export default function Login() {
                 placeholder="name@beispiel.de"
                 className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-700/30"
               />
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
                   onClick={() => setShowResetModal(false)}

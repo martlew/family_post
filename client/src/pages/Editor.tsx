@@ -3,7 +3,9 @@ import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { ArrowLeft, Camera, Mail, RotateCw, Send, Upload, Image as ImageIcon } from "lucide-react";
-import { getAuthSession } from "@/lib/auth";
+import { buildApiUrl, getAuthSession } from "@/lib/auth";
+import FloatingPostcards from "@/components/FloatingPostcards";
+import BrandMark from "@/components/BrandMark";
 
 interface Postcard {
   id: string;
@@ -14,6 +16,15 @@ interface Postcard {
   recipientCity: string;
   createdAt: string;
 }
+
+type ZippopotamPlace = {
+  "place name"?: string;
+  state?: string;
+};
+
+type ZippopotamResponse = {
+  places?: ZippopotamPlace[];
+};
 
 const TEMPLATE_IMAGES = [
   {
@@ -60,15 +71,6 @@ export default function Editor() {
     }
   }, [navigate]);
 
-  const floatingCards = [
-    { left: "8%", top: "20%", duration: 26, delay: 0 },
-    { left: "20%", top: "76%", duration: 30, delay: 2 },
-    { left: "40%", top: "18%", duration: 24, delay: 1 },
-    { left: "58%", top: "76%", duration: 29, delay: 2.5 },
-    { left: "74%", top: "24%", duration: 25, delay: 0.5 },
-    { left: "88%", top: "68%", duration: 27, delay: 1.5 },
-  ];
-
   const handlePostalLookup = async (postalCode: string) => {
     if (!/^\d{5}$/.test(postalCode)) {
       setCitySuggestions([]);
@@ -83,11 +85,11 @@ export default function Editor() {
         return;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as ZippopotamResponse;
       const suggestions = Array.from(
         new Set(
           (data?.places ?? [])
-            .map((place: { "place name"?: string; state?: string }) => {
+            .map((place) => {
               const placeName = place["place name"];
               if (!placeName) return "";
               return place.state ? `${placeName} (${place.state})` : placeName;
@@ -153,39 +155,37 @@ export default function Editor() {
     setIsLoading(true);
 
     try {
-      // Kurze Vorbereitungssimulation
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      const isPromoPaid = promoCode === "ELTERN-PREMIUM-2026";
-
-      const newPostcard: Postcard & { isPromoPaid?: boolean } = {
-        id: Math.random().toString(36).substring(2, 9),
-        imageUrl,
-        message,
-        recipientName,
-        recipientAddress,
-        recipientCity: `${recipientPostalCode} ${recipientCity}`,
-        isPromoPaid,
-        createdAt: new Date().toLocaleDateString("de-DE", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
+      const session = getAuthSession();
+      const response = await fetch(buildApiUrl("/api/payments/create-checkout"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl,
+          message,
+          recipientName,
+          recipientAddress,
+          recipientPostalCode,
+          recipientCity,
+          selectedPlan: localStorage.getItem("familypost_selected_plan") || "single",
+          promoCode: promoCode.trim() || undefined,
+          customerEmail: session?.user.email,
+          customerName: session?.user.fullName,
         }),
-      };
+      });
 
-      const existing = localStorage.getItem("family_postcards");
-      const list = existing ? JSON.parse(existing) : [];
-      list.unshift(newPostcard);
-      localStorage.setItem("family_postcards", JSON.stringify(list));
-
-      if (isPromoPaid) {
-        toast.success("Admin-Gutschein aktiv! Stripe wurde übersprungen.");
-      } else {
-        toast.success("Zahlung erfolgreich! Sendung wird verfolgt...");
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || "Checkout konnte nicht geöffnet werden.");
       }
-      navigate(`/shipping-status/${newPostcard.id}`);
+
+      if (!payload.checkoutUrl) {
+        throw new Error("Checkout-URL fehlt.");
+      }
+
+      toast.success("Bitte im Lemon Squeezy Checkout bezahlen.");
+      window.location.assign(payload.checkoutUrl);
     } catch (err) {
-      toast.error("Übertragung fehlgeschlagen. Bitte versuche es erneut.");
+      toast.error(err instanceof Error ? err.message : "Übertragung fehlgeschlagen. Bitte versuche es erneut.");
     } finally {
       setIsLoading(false);
     }
@@ -214,36 +214,7 @@ export default function Editor() {
 
   return (
     <div className="min-h-screen overflow-hidden relative flex flex-col bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
-      {/* Background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl opacity-25 animate-pulse" />
-        <div
-          className="absolute bottom-40 right-20 w-96 h-96 bg-amber-300/20 rounded-full blur-3xl opacity-25 animate-pulse"
-          style={{ animationDelay: "1s" }}
-        />
-        {floatingCards.map((card, index) => (
-          <motion.div
-            key={`${card.left}-${card.top}`}
-            className="absolute h-8 w-12 rounded-md border border-emerald-200/80 bg-white/75 shadow-[0_10px_28px_rgba(15,118,110,0.12)]"
-            style={{ left: card.left, top: card.top }}
-            animate={{
-              y: [0, -20, 0],
-              x: [0, index % 2 === 0 ? 9 : -9, 0],
-              rotate: [-4, 3, -4],
-              opacity: [0.1, 0.2, 0.1],
-            }}
-            transition={{
-              duration: card.duration,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: card.delay,
-            }}
-          >
-            <div className="mx-1 mt-1 h-[2px] w-5 rounded bg-emerald-300/70" />
-            <div className="mx-1 mt-1 h-[2px] w-8 rounded bg-emerald-200/70" />
-          </motion.div>
-        ))}
-      </div>
+      <FloatingPostcards className="opacity-75" />
 
       {/* Navigation */}
       <motion.nav
@@ -252,9 +223,9 @@ export default function Editor() {
         transition={{ duration: 0.6 }}
         className="relative z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur-md"
       >
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/dashboard" className="flex items-center gap-2 text-slate-600 hover:text-teal-800 transition-colors cursor-pointer text-sm">
-            <ArrowLeft className="w-4 h-4" />
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <Link href="/dashboard" className="flex items-center gap-3 text-sm text-slate-600 transition-colors cursor-pointer hover:text-teal-800">
+            <BrandMark compact />
             <span>Zurück zum Dashboard</span>
           </Link>
           <span className="text-xl font-bold text-slate-950">
@@ -264,9 +235,9 @@ export default function Editor() {
       </motion.nav>
 
       {/* Editor Content */}
-      <div className="relative z-10 flex-1 max-w-6xl mx-auto w-full px-4 py-8 flex flex-col lg:flex-row gap-8 items-center lg:items-stretch justify-center">
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center gap-8 px-4 py-8 lg:flex-row lg:items-stretch">
         {/* Left Column: 3D Postcard Preview */}
-        <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] w-full">
+        <div className="flex w-full flex-1 flex-col items-center justify-center min-h-[400px]">
           {/* Postcard Container */}
           <div style={cardStyle} className="w-full max-w-lg aspect-[3/2] relative rounded-2xl">
             <motion.div
@@ -338,12 +309,12 @@ export default function Editor() {
           </div>
 
           {/* Controls below card */}
-          <div className="mt-6 flex gap-4">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsFlipped(!isFlipped)}
-              className="px-5 py-2.5 rounded-full bg-teal-700 hover:bg-teal-800 text-white font-semibold text-sm transition-all flex items-center gap-2 shadow-lg shadow-emerald-900/20"
+              className="flex items-center gap-2 rounded-full bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition-all shadow-lg shadow-emerald-900/20 hover:bg-teal-800"
             >
               <RotateCw className="w-4 h-4" />
               <span>Karte umdrehen ({isFlipped ? "Vorderseite" : "Rückseite"})</span>
@@ -352,8 +323,8 @@ export default function Editor() {
         </div>
 
         {/* Right Column: Editor Sidebar */}
-        <div className="w-full lg:w-96 flex flex-col">
-          <div className="p-6 rounded-2xl bg-white/90 backdrop-blur-sm border border-slate-200 shadow-[0_22px_60px_rgba(15,23,42,0.12)] flex flex-col h-full">
+        <div className="flex w-full flex-col lg:w-96">
+          <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-[0_22px_60px_rgba(15,23,42,0.12)] backdrop-blur-sm sm:p-6">
             {/* Tabs Header */}
             <div className="mb-6 flex rounded-xl border border-slate-200 bg-slate-100 p-1">
               <button
@@ -569,21 +540,19 @@ export default function Editor() {
                   {/* Gutscheincode */}
                   <div>
                     <label htmlFor="promo-code" className="block text-sm font-semibold text-slate-700 mb-1.5">
-                      Gutschein- / Admin-Code (optional)
+                      Rabattcode (optional)
                     </label>
                     <input
                       id="promo-code"
                       type="text"
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
-                      placeholder="z.B. ELTERN-PREMIUM-2026"
+                      placeholder="z.B. SOMMER10"
                       className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-700/30 focus:border-teal-700/40 transition-all text-sm"
                     />
-                    {promoCode === "ELTERN-PREMIUM-2026" && (
-                      <p className="text-xs text-emerald-700 mt-1 font-semibold flex items-center gap-1 animate-pulse">
-                        <span>✓ Code aktiv: 100% Rabatt (Stripe übersprungen)</span>
-                      </p>
-                    )}
+                    <p className="mt-1 text-xs text-slate-500">
+                      Der Code wird im Lemon Squeezy Checkout geprüft.
+                    </p>
                   </div>
                 </div>
 
@@ -606,11 +575,11 @@ export default function Editor() {
                     className="flex-1 py-3 rounded-xl bg-teal-700 text-white font-bold text-sm hover:bg-teal-800 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20"
                   >
                     {isLoading ? (
-                      <span>Druck wird gestartet...</span>
+                      <span>Checkout wird geöffnet...</span>
                     ) : (
                       <>
                         <Send className="w-4 h-4" />
-                        <span>Postkarte versenden</span>
+                        <span>Zur Zahlung & Versandfreigabe</span>
                       </>
                     )}
                   </motion.button>

@@ -20,7 +20,15 @@ export const getApiBaseUrl = () => {
 export const buildApiUrl = (path: string) => {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const base = getApiBaseUrl();
-  return base ? `${base}${normalizedPath}` : normalizedPath;
+  if (!base) {
+    return normalizedPath;
+  }
+
+  if (normalizedPath === base || normalizedPath.startsWith(`${base}/`)) {
+    return normalizedPath;
+  }
+
+  return `${base}${normalizedPath}`;
 };
 
 export const getAuthSession = (): AuthSession | null => {

@@ -1,0 +1,2 @@
+/api/* https://api.foto-post-weltweit.de/api/:splat 200
+/* /index.html 200
