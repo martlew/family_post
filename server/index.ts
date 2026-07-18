@@ -581,10 +581,15 @@ async function startServer() {
 
     const { firstName, lastName } = splitRecipientName(payload.recipientName);
     const resolvedLocation = extractPostalCodeAndCity(payload.recipientPostalCode, payload.recipientCity);
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const deliverAt = dayOfWeek === 0 || dayOfWeek === 6
+      ? new Date(now.getFullYear(), now.getMonth(), now.getDate() + (dayOfWeek === 6 ? 2 : 1)).toISOString().slice(0, 10)
+      : "today";
     const requestBody: EchtpostCardRequest = {
       motive_id: motiveId,
       content: payload.message.replace(/\r\n/g, "\n").trim(),
-      deliver_at: "today",
+      deliver_at: deliverAt,
       recipients: [
         {
           ...(firstName ? { first_name: firstName } : {}),
