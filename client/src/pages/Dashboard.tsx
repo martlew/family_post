@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Mail, Plus, Settings, X, RotateCw, CreditCard } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { clearAuthSession, getAuthSession } from "@/lib/auth";
-import FloatingPostcards from "@/components/FloatingPostcards";
 import BrandMark from "@/components/BrandMark";
 
 interface Postcard {
@@ -62,105 +60,77 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden relative flex flex-col bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
-      <FloatingPostcards className="opacity-75" />
-
+    <div className="min-h-screen overflow-hidden relative flex flex-col bg-[#F7F3EA] text-[#0E4B40]">
       {/* Navigation */}
-      <motion.nav
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur-md"
-      >
+      <nav className="relative z-10 border-b border-[#D9E4DD] bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" className="flex items-center gap-3 cursor-pointer">
             <BrandMark compact />
-            <span className="text-xl font-bold text-slate-950">
-              FamilyPost
-            </span>
           </Link>
 
           <div className="flex items-center gap-3 self-start sm:self-auto">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <button
+              type="button"
               onClick={() => setIsSettingsOpen(true)}
-              className="rounded-xl p-2 text-slate-500 hover:bg-emerald-50 hover:text-teal-800 transition-all"
+              className="rounded-xl p-2 text-[#4A635C] transition-all hover:bg-[#E4F1E9] hover:text-[#0E4B40]"
               aria-label="Einstellungen"
             >
               <Settings className="w-5 h-5" />
-            </motion.button>
+            </button>
             <Link
               href="/login"
               onClick={() => clearAuthSession()}
-              className="cursor-pointer rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 transition-all hover:border-teal-700/40 hover:text-teal-800"
+              className="cursor-pointer rounded-full border border-[#D9E4DD] bg-white px-4 py-2 text-sm text-[#0E4B40] transition-all hover:border-[#C99A3E]/40 hover:text-[#C99A3E]"
             >
               Abmelden
             </Link>
           </div>
         </div>
-      </motion.nav>
+      </nav>
 
       {/* Content */}
       <div className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-12">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-10"
-        >
-          <h1 className="mb-2 text-3xl font-black text-slate-950 md:text-4xl">
+        <div className="mb-10">
+          <h1 className="mb-2 text-3xl font-black text-[#0E4B40] md:text-4xl">
             Meine Postkarten
           </h1>
-          <p className="text-slate-600">
+          <p className="text-[#4A635C]">
             Erstelle und versende Postkarten direkt an deine Familie.
           </p>
-        </motion.div>
+        </div>
 
         {/* CTA Card – Neue Postkarte */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-          className="mb-8"
-        >
+        <div className="mb-8">
           <Link href="/editor" className="block w-full cursor-pointer">
-            <motion.div
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className="group flex w-full flex-col items-center gap-6 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-amber-50 p-8 text-left transition-all duration-300 hover:border-emerald-400 sm:flex-row"
-            >
-              <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-teal-700 shadow-lg shadow-emerald-900/20 transition-shadow group-hover:shadow-emerald-900/35">
+            <div className="group flex w-full flex-col items-center gap-6 rounded-2xl border border-[#D9E4DD] bg-gradient-to-r from-[#E4F1E9] via-white to-[#F7F3EA] p-8 text-left transition-all duration-300 hover:border-[#C99A3E]/40 sm:flex-row">
+              <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-[#0E4B40] shadow-lg shadow-[#0E4B40]/20 transition-shadow group-hover:shadow-[#0E4B40]/30">
                 <Plus className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h2 className="mb-1 text-xl font-bold text-slate-900">
+                <h2 className="mb-1 text-xl font-bold text-[#0E4B40]">
                   Neue Postkarte erstellen
                 </h2>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-[#4A635C]">
                   Lade ein Foto hoch, schreibe eine persönliche Nachricht und
                   wähle einen Empfänger aus.
                 </p>
               </div>
-            </motion.div>
+            </div>
           </Link>
-        </motion.div>
+        </div>
 
         {/* Postcards Grid or Empty State */}
         {postcards.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {postcards.map((card, idx) => (
-              <motion.div
+              <div
                 key={card.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 + idx * 0.05 }}
                 onClick={() => {
                   setSelectedPostcard(card);
                   setIsModalFlipped(false);
                 }}
-                className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-[0_14px_38px_rgba(15,23,42,0.10)] transition-all duration-300 hover:border-emerald-300 hover:bg-white"
+                className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#D9E4DD] bg-white/90 shadow-[0_14px_38px_rgba(14,75,64,0.08)] transition-all duration-300 hover:border-[#C99A3E]/40 hover:bg-white"
               >
                 {/* Image Preview */}
                 <div className="relative aspect-[3/2] w-full overflow-hidden bg-slate-100">
@@ -169,7 +139,7 @@ export default function Dashboard() {
                     alt="Postkarten Motiv"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute right-3 top-3 rounded border border-slate-200 bg-white/90 px-2 py-1 text-[10px] font-bold text-slate-600">
+                  <div className="absolute right-3 top-3 rounded border border-[#D9E4DD] bg-white/90 px-2 py-1 text-[10px] font-bold text-[#0E4B40]">
                     {card.createdAt}
                   </div>
                 </div>
@@ -177,94 +147,76 @@ export default function Dashboard() {
                 {/* Card Info */}
                 <div className="p-5 flex-1 flex flex-col justify-between gap-4">
                   <div>
-                    <h3 className="mb-1 truncate text-base font-bold text-slate-900">
+                    <h3 className="mb-1 truncate text-base font-bold text-[#0E4B40]">
                       {card.recipientName}
                     </h3>
-                    <p className="truncate text-xs text-slate-500">
+                    <p className="truncate text-xs text-[#4A635C]">
                       {card.recipientAddress}, {card.recipientCity}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-teal-800 transition-colors group-hover:text-teal-700">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0E4B40] transition-colors group-hover:text-[#C99A3E]">
                     <Mail className="w-3.5 h-3.5" />
                     <span>Postkarte ansehen & umdrehen</span>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         ) : (
           /* Placeholder – leerer Zustand */
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-slate-200 bg-white/90 p-12 text-center shadow-[0_14px_38px_rgba(15,23,42,0.10)]"
-          >
-            <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50">
-              <Mail className="w-8 h-8 text-teal-700" />
+          <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-[#D9E4DD] bg-white/90 p-12 text-center shadow-[0_14px_38px_rgba(14,75,64,0.08)]">
+            <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E4F1E9]">
+              <Mail className="w-8 h-8 text-[#0E4B40]" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900">
+            <h3 className="text-lg font-bold text-[#0E4B40]">
               Noch keine Postkarten
             </h3>
-            <p className="max-w-sm text-sm text-slate-600">
+            <p className="max-w-sm text-sm text-[#4A635C]">
               Klicke auf „Neue Postkarte erstellen", um deine erste Postkarte zu
               gestalten und zu verschicken.
             </p>
 
             <div className="mt-4 flex gap-3 flex-wrap justify-center">
-              <Link href="/editor" className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 transition-all hover:border-teal-700/35 hover:text-teal-800">
+              <Link href="/editor" className="flex cursor-pointer items-center gap-2 rounded-full border border-[#D9E4DD] bg-white px-4 py-2 text-sm text-[#0E4B40] transition-all hover:border-[#C99A3E]/35 hover:text-[#C99A3E]">
                 <Camera className="w-4 h-4" />
                 <span>Foto hochladen</span>
               </Link>
-              <Link href="/editor" className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 transition-all hover:border-teal-700/35 hover:text-teal-800">
+              <Link href="/editor" className="flex cursor-pointer items-center gap-2 rounded-full border border-[#D9E4DD] bg-white px-4 py-2 text-sm text-[#0E4B40] transition-all hover:border-[#C99A3E]/35 hover:text-[#C99A3E]">
                 <Mail className="w-4 h-4" />
                 <span>Empfänger wählen</span>
               </Link>
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
 
       {/* DETAIL MODAL WITH 3D FLIP */}
-      <AnimatePresence>
-        {selectedPostcard && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedPostcard(null)}
-              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-            />
+      {selectedPostcard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            onClick={() => setSelectedPostcard(null)}
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            aria-label="Schließen"
+          />
 
-            {/* Modal Card */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl md:p-8"
-            >
+          <div className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-6 rounded-3xl border border-[#D9E4DD] bg-white p-6 shadow-2xl md:p-8">
               {/* Close Button */}
               <button
                 onClick={() => setSelectedPostcard(null)}
-                className="absolute right-4 top-4 rounded-xl p-2 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700"
+                className="absolute right-4 top-4 rounded-xl p-2 text-[#4A635C] transition-all hover:bg-[#E4F1E9] hover:text-[#0E4B40]"
                 aria-label="Schließen"
               >
                 <X className="w-6 h-6" />
               </button>
 
-              <h2 className="text-center text-xl font-black text-slate-950 md:text-2xl">
+              <h2 className="text-center text-xl font-black text-[#0E4B40] md:text-2xl">
                 Postkarte an {selectedPostcard.recipientName}
               </h2>
 
               {/* 3D Postcard Container */}
-              <div style={cardStyle} className="w-full max-w-lg aspect-[3/2] relative rounded-2xl my-4">
-                <motion.div
-                  style={innerCardStyle}
-                  transition={{ duration: 0.6, ease: "easeInOut" }}
-                  className="w-full h-full relative"
-                >
+              <div style={cardStyle} className="relative my-4 aspect-[3/2] w-full max-w-lg rounded-2xl">
+                <div style={innerCardStyle} className="relative h-full w-full transition-transform duration-500 ease-in-out">
                   {/* FRONT SIDE */}
                   <div
                     style={faceStyle}
@@ -313,55 +265,40 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               </div>
 
               {/* Controls inside Modal */}
-              <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+              <div className="flex w-full flex-col justify-center gap-3 sm:flex-row">
+                <button
+                  type="button"
                   onClick={() => setIsModalFlipped(!isModalFlipped)}
                   className="flex items-center gap-2 rounded-full bg-teal-700 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-900/20 transition-all hover:bg-teal-800"
                 >
                   <RotateCw className="w-4 h-4" />
                   <span>Karte umdrehen ({isModalFlipped ? "Vorderseite" : "Rückseite"})</span>
-                </motion.button>
+                </button>
                 <Link href={`/shipping-status/${selectedPostcard.id}`} className="cursor-pointer">
-                  <motion.a
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 rounded-full border border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-800 shadow-lg transition-all hover:border-teal-700/35 hover:text-teal-800"
-                  >
+                  <a className="flex items-center gap-2 rounded-full border border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-800 shadow-lg transition-all hover:border-teal-700/35 hover:text-teal-800">
                     <span>🚚 Sendungsstatus prüfen</span>
-                  </motion.a>
+                  </a>
                 </Link>
               </div>
-            </motion.div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
       {/* SETTINGS MODAL */}
-      <AnimatePresence>
-        {isSettingsOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsSettingsOpen(false)}
-              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-            />
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            onClick={() => setIsSettingsOpen(false)}
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            aria-label="Schließen"
+          />
 
-            {/* Modal Card */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative z-10 flex w-full max-w-md flex-col gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl md:p-8"
-            >
+          <div className="relative z-10 flex w-full max-w-md flex-col gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl md:p-8">
               {/* Close Button */}
               <button
                 onClick={() => setIsSettingsOpen(false)}
@@ -452,10 +389,9 @@ export default function Dashboard() {
                   Speichern
                 </button>
               </div>
-            </motion.div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }

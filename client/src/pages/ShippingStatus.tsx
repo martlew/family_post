@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useParams } from "wouter";
 import { ArrowLeft, Check, ClipboardList, Loader2, Mail, MapPin, Printer, Truck } from "lucide-react";
 import { buildApiUrl, getAuthSession } from "@/lib/auth";
-import FloatingPostcards from "@/components/FloatingPostcards";
 
 interface Postcard {
   id: string;
@@ -107,22 +106,19 @@ export default function ShippingStatus() {
   ];
 
   return (
-    <div className="min-h-screen overflow-hidden relative flex flex-col bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
-      <FloatingPostcards className="opacity-75" />
-
+    <div className="min-h-screen overflow-hidden relative flex flex-col bg-[#F7F3EA] text-[#0E4B40]">
       {/* Navigation */}
       <motion.nav
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur-md"
+        className="relative z-10 border-b border-[#D9E4DD] bg-white/85 backdrop-blur-md"
       >
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2 text-sm text-slate-600 transition-colors cursor-pointer hover:text-teal-800">
+          <Link href="/dashboard" className="flex items-center gap-2 text-sm text-[#4A635C] transition-colors cursor-pointer hover:text-[#0E4B40]">
             <ArrowLeft className="w-4 h-4" />
-            <span>Zurück zum Dashboard</span>
           </Link>
-          <span className="text-xl font-bold text-slate-950">
+          <span className="text-xl font-bold text-[#0E4B40]">
             Sendungsstatus
           </span>
         </div>

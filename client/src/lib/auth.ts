@@ -12,7 +12,14 @@ const AUTH_STORAGE_KEY = "familypost_auth";
 export const getApiBaseUrl = () => {
   const configured = String(import.meta.env.VITE_API_URL ?? "").trim();
   if (!configured) {
-    return "";
+    if (typeof window !== "undefined") {
+      const { hostname, protocol } = window.location;
+      if (hostname === "localhost" || hostname === "127.0.0.1") {
+        return `${protocol}//localhost:3000`;
+      }
+    }
+
+    return "https://api.foto-post-weltweit.de";
   }
   return configured.replace(/\/$/, "");
 };

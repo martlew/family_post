@@ -70,19 +70,19 @@ Wenn nicht, gehört sie nicht zu Family Post.
 ## 🛠️ Operative Leitplanken (Ergänzung für System-Agenten)
 
 ### 1. Technische Infrastruktur & API
-Die vollautomatische Abwicklung im Hintergrund erfolgt über die offizielle High-End-Schnittstelle von **MyPostcard**. Das Frontend läuft hochperformant auf **Vercel**, die globale Erreichbarkeit und DNS-Stabilität wird über **DigitalOcean** (inkl. SSL/HTTPS) gesichert. 
+Die vollautomatische Postkarten-Abwicklung im Hintergrund erfolgt über die **EchtPost-API**. Frontend und Backend werden über den **Manitu-Server** und die angebundenen Produktionsdomains betrieben. Globale Erreichbarkeit, DNS-Stabilität und HTTPS folgen der aktuellen Manitu-/Domain-Konfiguration.
 
 ### 2. Die eiserne Preisgrenze
 Unser Angebot folgt festen Paketpreisen, die das All-inclusive-Versprechen halten: Weltweiter Premium-Versand, hochwertiger 300g-Druck und echtes Porto sind immer komplett inklusive – ohne versteckte Kosten.
 
-- Einzelticket: **3,99 € pro Karte** für gelegentliche Urlaubsgrüße.
-- Family-Paket (5 Postkarten): **18,99 €** zum Sparpreis (kein Ablaufdatum, gemeinsam in der Familie nutzbar).
-- Vorteils-Paket (10 Postkarten): **34,99 €** zum Bestpreis (kein Ablaufdatum, ideal für Vielschreiber).
+- Einzelticket: **4,99 € pro Karte** für gelegentliche Urlaubsgrüße.
+- Family-Paket (5 Postkarten): **22,99 €** zum Sparpreis (kein Ablaufdatum, gemeinsam in der Familie nutzbar).
+- Vorteils-Paket (10 Postkarten): **39,99 €** zum Bestpreis (kein Ablaufdatum, ideal für Vielschreiber).
 
 Diese Preisstruktur bleibt im B2C-Bereich stets bindend und darf vom System niemals eigenständig überschritten werden.
 
 ### 3. Zahlungsabwicklung & Bürokratie-Minimierung
-Wir nutzen nicht direkt Stripe. Stattdessen arbeiten wir mit einem Merchant of Record (MoR) wie Lemon Squeezy oder Paddle.
+Wir nutzen nicht direkt Stripe. Stattdessen arbeiten wir mit Lemon Squeezy als Merchant of Record (MoR).
 
 Das System muss darauf vorbereitet sein, Zahlungen, Abonnements und Rechnungsstellung vollständig über den MoR abzuwickeln.
 Diese Lösung minimiert steuerliche Bürokratie und schützt das operative Geschäft.

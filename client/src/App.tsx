@@ -10,6 +10,8 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Editor from "./pages/Editor";
 import ShippingStatus from "./pages/ShippingStatus";
+import ResetPassword from "./pages/ResetPassword";
+import OrderSuccess from "./pages/OrderSuccess";
 
 function Router() {
   return (
@@ -20,6 +22,8 @@ function Router() {
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/editor"} component={Editor} />
       <Route path={"/shipping-status/:id"} component={ShippingStatus} />
+      <Route path={"/reset-password"} component={ResetPassword} />
+      <Route path={"/order-success"} component={OrderSuccess} />
       <Route path={"/404"} component={NotFound} />
     </Switch>
   );

@@ -1,0 +1,25 @@
+<svg viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg-base { fill: #F7F3EA; }
+      .route { fill: none; stroke: #0E4B40; stroke-width: 1.4; stroke-dasharray: 1 9; stroke-linecap: round; opacity: 0.22; }
+      .stamp-ring { fill: none; stroke: #C99A3E; stroke-width: 1.2; opacity: 0.18; }
+      .dot { fill: #0E4B40; opacity: 0.16; }
+    </style>
+  </defs>
+  <rect width="1600" height="900" class="bg-base"/>
+  <path class="route" d="M -50 720 C 300 620, 650 780, 980 560 S 1550 380, 1700 300"/>
+  <path class="route" d="M -60 180 C 250 260, 500 120, 820 240 S 1400 200, 1660 140"/>
+  <path class="route" d="M 100 900 C 400 760, 300 480, 640 420 S 1100 520, 1300 700"/>
+  <circle class="stamp-ring" cx="1180" cy="150" r="46"/>
+  <circle class="stamp-ring" cx="1340" cy="620" r="64"/>
+  <circle class="stamp-ring" cx="980" cy="760" r="34"/>
+  <circle class="stamp-ring" cx="1480" cy="380" r="28"/>
+  <circle class="stamp-ring" cx="120" cy="90" r="30"/>
+  <circle class="dot" cx="300" cy="620" r="4"/>
+  <circle class="dot" cx="980" cy="560" r="4"/>
+  <circle class="dot" cx="820" cy="240" r="4"/>
+  <circle class="dot" cx="1400" cy="200" r="4"/>
+  <circle class="dot" cx="640" cy="420" r="4"/>
+  <circle class="dot" cx="1300" cy="700" r="4"/>
+</svg>

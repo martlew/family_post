@@ -1,10 +1,8 @@
 import { useEffect, useState, useRef } from "react";
-import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { ArrowLeft, Camera, Mail, RotateCw, Send, Upload, Image as ImageIcon } from "lucide-react";
 import { buildApiUrl, getAuthSession } from "@/lib/auth";
-import FloatingPostcards from "@/components/FloatingPostcards";
 import BrandMark from "@/components/BrandMark";
 
 interface Postcard {
@@ -183,7 +181,12 @@ export default function Editor() {
       }
 
       toast.success("Bitte im Lemon Squeezy Checkout bezahlen.");
-      window.location.assign(payload.checkoutUrl);
+      const checkoutUrl = new URL(payload.checkoutUrl, window.location.href);
+      const discountCode = promoCode.trim();
+      if (discountCode) {
+        checkoutUrl.searchParams.set("discount_code", discountCode);
+      }
+      window.location.assign(checkoutUrl.toString());
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Übertragung fehlgeschlagen. Bitte versuche es erneut.");
     } finally {
@@ -213,16 +216,9 @@ export default function Editor() {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden relative flex flex-col bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
-      <FloatingPostcards className="opacity-75" />
-
+    <div className="min-h-screen overflow-hidden relative flex flex-col bg-[linear-gradient(180deg,#f7f3ec_0%,#f4efe7_100%)] text-slate-900">
       {/* Navigation */}
-      <motion.nav
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur-md"
-      >
+      <nav className="relative z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/dashboard" className="flex items-center gap-3 text-sm text-slate-600 transition-colors cursor-pointer hover:text-teal-800">
             <BrandMark compact />
@@ -232,7 +228,7 @@ export default function Editor() {
             Postkarten-Designer
           </span>
         </div>
-      </motion.nav>
+      </nav>
 
       {/* Editor Content */}
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center gap-8 px-4 py-8 lg:flex-row lg:items-stretch">
@@ -240,11 +236,7 @@ export default function Editor() {
         <div className="flex w-full flex-1 flex-col items-center justify-center min-h-[400px]">
           {/* Postcard Container */}
           <div style={cardStyle} className="w-full max-w-lg aspect-[3/2] relative rounded-2xl">
-            <motion.div
-              style={innerCardStyle}
-              transition={{ duration: 0.6, ease: "easeInOut" }}
-              className="w-full h-full relative"
-            >
+            <div style={innerCardStyle} className="relative h-full w-full transition-transform duration-500 ease-in-out">
               {/* FRONT SIDE */}
               <div
                 style={faceStyle}
@@ -305,20 +297,19 @@ export default function Editor() {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
 
           {/* Controls below card */}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <button
+              type="button"
               onClick={() => setIsFlipped(!isFlipped)}
               className="flex items-center gap-2 rounded-full bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition-all shadow-lg shadow-emerald-900/20 hover:bg-teal-800"
             >
               <RotateCw className="w-4 h-4" />
               <span>Karte umdrehen ({isFlipped ? "Vorderseite" : "Rückseite"})</span>
-            </motion.button>
+            </button>
           </div>
         </div>
 
@@ -369,16 +360,15 @@ export default function Editor() {
                     accept="image/*"
                     className="hidden"
                   />
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  <button
+                    type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full py-6 border-2 border-dashed border-slate-300 hover:border-teal-700/40 rounded-xl flex flex-col items-center justify-center gap-2 hover:bg-emerald-50/40 transition-all cursor-pointer group"
+                    className="group flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 py-6 transition-all hover:border-teal-700/40 hover:bg-emerald-50/40"
                   >
                     <Upload className="w-8 h-8 text-slate-500 group-hover:text-teal-700 transition-colors" />
                     <span className="text-slate-700 text-sm font-semibold">Eigenes Foto hochladen</span>
                     <span className="text-slate-500 text-xs">Unterstützt JPG, PNG</span>
-                  </motion.button>
+                  </button>
 
                   <div className="pt-2">
                     <h3 className="text-slate-900 font-bold text-base mb-3">Oder Vorlage wählen</h3>
@@ -402,9 +392,8 @@ export default function Editor() {
                 </div>
 
                 <div className="pt-6 border-t border-slate-200">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  <button
+                    type="button"
                     onClick={() => {
                       if (!imageUrl) {
                         toast.error("Bitte wähle oder lade zuerst ein Bild hoch.");
@@ -413,10 +402,10 @@ export default function Editor() {
                       setActiveTab("text");
                       setIsFlipped(true);
                     }}
-                    className="w-full py-3 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-teal-700 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/20 transition-all hover:bg-teal-800"
                   >
                     <span>Weiter zu Gruß & Adresse</span>
-                  </motion.button>
+                  </button>
                 </div>
               </div>
             )}
@@ -567,11 +556,9 @@ export default function Editor() {
                   >
                     Zurück
                   </button>
-                  <motion.button
+                  <button
                     type="submit"
                     disabled={isLoading}
-                    whileHover={{ scale: isLoading ? 1 : 1.02 }}
-                    whileTap={{ scale: isLoading ? 1 : 0.98 }}
                     className="flex-1 py-3 rounded-xl bg-teal-700 text-white font-bold text-sm hover:bg-teal-800 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20"
                   >
                     {isLoading ? (
@@ -582,7 +569,7 @@ export default function Editor() {
                         <span>Zur Zahlung & Versandfreigabe</span>
                       </>
                     )}
-                  </motion.button>
+                  </button>
                 </div>
               </form>
             )}

@@ -5,8 +5,8 @@ type BrandMarkProps = {
 
 export default function BrandMark({ className = "", compact = false }: BrandMarkProps) {
   const sizeClass = compact
-    ? "h-12 sm:h-14 md:h-16 w-auto shrink-0 object-contain"
-    : "h-14 sm:h-16 md:h-20 w-auto shrink-0 object-contain";
+    ? "w-[clamp(10.75rem,40vw,13.5rem)] max-w-full h-auto shrink-0 object-contain"
+    : "w-[clamp(12.5rem,44vw,16.5rem)] max-w-full h-auto shrink-0 object-contain";
 
   return (
     <img

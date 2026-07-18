@@ -9,14 +9,14 @@ Unsere Strategie ist einfach:
 - Wir schützen die Menschlichkeit vor automatischen Prozessen.
 
 Operative Leitplanken:
-- Die Abwicklung erfolgt über die offizielle High-End-API von MyPostcard.
-- Das Frontend läuft performant auf Vercel.
-- Globale DNS-Stabilität und HTTPS sichert DigitalOcean.
-- Wir nutzen nicht direkt Stripe. Alle Zahlungen, Abonnements und Rechnungsstellungen werden über einen Merchant of Record (MoR) wie Lemon Squeezy oder Paddle abgewickelt.
+- Die Postkarten-Abwicklung erfolgt über die EchtPost-API.
+- Frontend und Backend werden über den Manitu-Server und die angebundenen Produktionsdomains betrieben.
+- Globale DNS-Stabilität und HTTPS folgen der aktuellen Manitu-/Domain-Konfiguration.
+- Wir nutzen nicht direkt Stripe. Alle Zahlungen, Abonnements und Rechnungsstellungen werden über Lemon Squeezy als Merchant of Record (MoR) abgewickelt.
 - Im B2C-Bereich ist unsere Preisstruktur bindend und enthält jederzeit das All-inclusive-Versprechen: weltweiter Premium-Versand, hochwertiger 300g-Druck und echtes Porto ohne versteckte Kosten.
-- Einzelticket: **3,99 € pro Karte** für gelegentliche Urlaubsgrüße.
-- Family-Paket (5 Postkarten): **18,99 €** (kein Ablaufdatum, gemeinsam in der Familie nutzbar).
-- Vorteils-Paket (10 Postkarten): **34,99 €** (kein Ablaufdatum, ideal für Vielschreiber).
+- Einzelticket: **4,99 € pro Karte** für gelegentliche Urlaubsgrüße.
+- Family-Paket (5 Postkarten): **22,99 €** (kein Ablaufdatum, gemeinsam in der Familie nutzbar).
+- Vorteils-Paket (10 Postkarten): **39,99 €** (kein Ablaufdatum, ideal für Vielschreiber).
 
 Unser primäres Meilenstein-Ziel ist ein stabiler monatlicher Umsatz von **500 €**.
 Das entspricht etwa **30–50 treuen Familien-Kunden** in unseren Paketen.

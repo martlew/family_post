@@ -8,6 +8,8 @@ set -euo pipefail
 API_DOMAIN="${API_DOMAIN:-api.foto-post-weltweit.de}"
 # Allow the production frontend plus the current temporary Netlify deploy URL.
 FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://foto-post-weltweit.de,https://www.foto-post-weltweit.de,https://6a566eee41c42012a80dac40--foto-post-weltweit.netlify.app}"
+API_BASE_URL="${API_BASE_URL:-https://api.foto-post-weltweit.de}"
+FRONTEND_BASE_URL="${FRONTEND_BASE_URL:-https://foto-post-weltweit.de}"
 ECHTPOST_API_KEY="${ECHTPOST_API_KEY:-REPLACE_WITH_ECHTPOST_API_KEY}"
 ECHTPOST_API_URL="${ECHTPOST_API_URL:-https://api.echtpost.example/postcards}"
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://foto-post-weltweit.de}"
@@ -15,11 +17,24 @@ LEMON_SQUEEZY_API_KEY="${LEMON_SQUEEZY_API_KEY:-REPLACE_WITH_LEMON_SQUEEZY_API_K
 LEMON_SQUEEZY_STORE_ID="${LEMON_SQUEEZY_STORE_ID:-REPLACE_WITH_LEMON_SQUEEZY_STORE_ID}"
 LEMON_SQUEEZY_VARIANT_ID="${LEMON_SQUEEZY_VARIANT_ID:-REPLACE_WITH_LEMON_SQUEEZY_VARIANT_ID}"
 LEMON_SQUEEZY_TEST_MODE="${LEMON_SQUEEZY_TEST_MODE:-true}"
+SMTP_HOST="${SMTP_HOST:-REPLACE_WITH_SMTP_HOST}"
+SMTP_PORT="${SMTP_PORT:-587}"
+SMTP_USER="${SMTP_USER:-REPLACE_WITH_SMTP_USER}"
+SMTP_PASSWORD="${SMTP_PASSWORD:-REPLACE_WITH_SMTP_PASSWORD}"
+SMTP_FROM="${SMTP_FROM:-\"Family Post <no-reply@foto-post-weltweit.de>\"}"
+SMTP_SECURE="${SMTP_SECURE:-false}"
 JWT_SECRET="${JWT_SECRET:-REPLACE_WITH_STRONG_JWT_SECRET}"
+DB_HOST="${DB_HOST:-familypost_db}"
+DB_PORT="${DB_PORT:-5432}"
+DB_NAME="${DB_NAME:-familypost}"
+DB_USER="${DB_USER:-postgres}"
+DB_PASSWORD="${DB_PASSWORD:-REPLACE_WITH_POSTGRES_PASSWORD}"
+DB_SSL="${DB_SSL:-false}"
 PORT="${PORT:-3000}"
 CERT_FALLBACK_DOMAIN="${CERT_FALLBACK_DOMAIN:-}"
 DOCKER_PORT_MAPPING="${DOCKER_PORT_MAPPING:-${PORT}:3000}"
 BACKEND_UPSTREAM_HOST="${BACKEND_UPSTREAM_HOST:-localhost}"
+DOCKER_NETWORK="${DOCKER_NETWORK:-family_post_default}"
 
 # Target paths and names
 APP_DIR="/opt/familypost"
@@ -84,55 +99,48 @@ else
   rsync -a --delete "${SCRIPT_DIR}/" "${APP_DIR}/"
 fi
 
-cat > "${APP_DIR}/Dockerfile" <<'EOF'
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-RUN corepack enable
-
-COPY package.json pnpm-lock.yaml ./
-COPY patches ./patches
-RUN pnpm install --frozen-lockfile
-
-COPY server ./server
-RUN pnpm exec esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
-
-FROM node:20-alpine AS runtime
-
-WORKDIR /app
-ENV NODE_ENV=production
-RUN corepack enable
-
-COPY package.json pnpm-lock.yaml ./
-COPY patches ./patches
-RUN pnpm install --prod --frozen-lockfile
-
-COPY --from=builder /app/dist ./dist
-
-EXPOSE 3000
-CMD ["node", "dist/index.js"]
-EOF
-
 # Write backend env file used by docker run
 cat > "${APP_DIR}/${ENV_REL_PATH}" <<EOF
 PORT=${PORT}
 NODE_ENV=production
 FRONTEND_ORIGIN=${FRONTEND_ORIGIN}
+API_BASE_URL=${API_BASE_URL}
+PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
+FRONTEND_BASE_URL=${FRONTEND_BASE_URL}
 ECHTPOST_API_KEY=${ECHTPOST_API_KEY}
 ECHTPOST_API_URL=${ECHTPOST_API_URL}
+LEMON_SQUEEZY_API_KEY=${LEMON_SQUEEZY_API_KEY}
+LEMON_SQUEEZY_STORE_ID=${LEMON_SQUEEZY_STORE_ID}
+LEMON_SQUEEZY_VARIANT_ID=${LEMON_SQUEEZY_VARIANT_ID}
+LEMON_SQUEEZY_TEST_MODE=${LEMON_SQUEEZY_TEST_MODE}
+SMTP_HOST=${SMTP_HOST}
+SMTP_PORT=${SMTP_PORT}
+SMTP_USER=${SMTP_USER}
+SMTP_PASSWORD=${SMTP_PASSWORD}
+SMTP_FROM=${SMTP_FROM}
+SMTP_SECURE=${SMTP_SECURE}
 JWT_SECRET=${JWT_SECRET}
+DB_HOST=${DB_HOST}
+DB_PORT=${DB_PORT}
+DB_NAME=${DB_NAME}
+DB_USER=${DB_USER}
+DB_PASSWORD=${DB_PASSWORD}
+DB_SSL=${DB_SSL}
 EOF
 
 # 2) Build and run Docker backend on localhost:3000
 cd "${APP_DIR}"
-docker build -f "${DOCKERFILE_REL_PATH}" -t "${IMAGE_NAME}" .
+docker builder prune -f >/dev/null 2>&1 || true
+docker build --no-cache --pull -f "server/Dockerfile" -t "${IMAGE_NAME}" .
 
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 
 docker run -d \
   --name "${CONTAINER_NAME}" \
   --restart unless-stopped \
+  --network "${DOCKER_NETWORK}" \
   --env-file "${APP_DIR}/${ENV_REL_PATH}" \
+  -v "${APP_DIR}/${ENV_REL_PATH}:/app/.env:ro" \
   -p "${DOCKER_PORT_MAPPING}" \
   "${IMAGE_NAME}"
 

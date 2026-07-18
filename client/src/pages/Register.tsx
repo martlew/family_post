@@ -3,7 +3,6 @@ import { ArrowRight, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { buildApiUrl, getSelectedPlan, setAuthSession } from "@/lib/auth";
-import FloatingPostcards from "@/components/FloatingPostcards";
 import BrandMark from "@/components/BrandMark";
 
 /**
@@ -47,25 +46,20 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-dvh overflow-hidden relative flex flex-col bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#f7f3ec_0%,#f3efe7_100%)] text-slate-900">
-      <FloatingPostcards className="opacity-45" />
-
+    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-[#F7F3EA] text-[#0E4B40]">
       {/* Navigation */}
       <motion.nav
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur-md"
+        className="relative z-10 border-b border-[#D9E4DD] bg-white/85 backdrop-blur-md"
       >
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="flex items-center gap-3"
+            className="flex items-center px-1"
           >
             <BrandMark compact />
-            <span className="text-xl font-bold text-slate-950">
-              FamilyPost
-            </span>
           </Link>
         </div>
       </motion.nav>
@@ -78,12 +72,12 @@ export default function Register() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="w-full max-w-md"
         >
-          <div className="rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-[0_22px_70px_rgba(15,23,42,0.14)] backdrop-blur-sm sm:p-8">
+          <div className="rounded-2xl border border-[#D9E4DD] bg-white/90 p-6 shadow-[0_22px_70px_rgba(14,75,64,0.10)] backdrop-blur-sm sm:p-8">
             <div className="mb-8 text-center">
-              <h1 className="mb-2 text-2xl font-black text-slate-950 md:text-3xl">
+              <h1 className="mb-2 text-2xl font-black text-[#0E4B40] md:text-3xl">
                 Konto erstellen
               </h1>
-              <p className="text-slate-600 text-sm">
+              <p className="text-[#4A635C] text-sm">
                 Tritt FamilyPost bei und versende Postkarten an deine Familie
               </p>
             </div>
@@ -92,7 +86,7 @@ export default function Register() {
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-6 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 text-sm"
+                className="mb-6 px-4 py-3 rounded-xl bg-[#D96B5B]/10 border border-[#D96B5B]/30 text-[#D96B5B] text-sm"
               >
                 {error}
               </motion.div>
@@ -103,12 +97,12 @@ export default function Register() {
               <div>
                 <label
                   htmlFor="fullName"
-                  className="block text-sm font-semibold text-slate-700 mb-2"
+                  className="block text-sm font-semibold text-[#0E4B40] mb-2"
                 >
                   Vollständiger Name
                 </label>
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#C99A3E]" />
                   <input
                     id="fullName"
                     type="text"
@@ -116,7 +110,7 @@ export default function Register() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Max Mustermann"
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-700/30 focus:border-teal-700/40 transition-all"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-[#D9E4DD] bg-white text-[#0E4B40] placeholder:text-[#7B8E86] focus:outline-none focus:ring-2 focus:ring-[#C99A3E]/30 focus:border-[#C99A3E]/40 transition-all"
                   />
                 </div>
               </div>
@@ -125,12 +119,12 @@ export default function Register() {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-semibold text-slate-700 mb-2"
+                  className="block text-sm font-semibold text-[#0E4B40] mb-2"
                 >
                   E-Mail
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#C99A3E]" />
                   <input
                     id="email"
                     type="email"
@@ -138,7 +132,7 @@ export default function Register() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@beispiel.de"
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-700/30 focus:border-teal-700/40 transition-all"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-[#D9E4DD] bg-white text-[#0E4B40] placeholder:text-[#7B8E86] focus:outline-none focus:ring-2 focus:ring-[#C99A3E]/30 focus:border-[#C99A3E]/40 transition-all"
                   />
                 </div>
               </div>
@@ -147,12 +141,12 @@ export default function Register() {
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-sm font-semibold text-slate-700 mb-2"
+                  className="block text-sm font-semibold text-[#0E4B40] mb-2"
                 >
                   Passwort
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#C99A3E]" />
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -160,12 +154,12 @@ export default function Register() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-12 pr-12 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-700/30 focus:border-teal-700/40 transition-all"
+                    className="w-full pl-12 pr-12 py-3 rounded-xl border border-[#D9E4DD] bg-white text-[#0E4B40] placeholder:text-[#7B8E86] focus:outline-none focus:ring-2 focus:ring-[#C99A3E]/30 focus:border-[#C99A3E]/40 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7B8E86] hover:text-[#0E4B40] transition-colors"
                     aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}
                   >
                     {showPassword ? (
@@ -183,7 +177,7 @@ export default function Register() {
                 disabled={isLoading}
                 whileHover={{ scale: isLoading ? 1 : 1.02 }}
                 whileTap={{ scale: isLoading ? 1 : 0.98 }}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-6 py-4 text-lg font-bold text-white transition-all duration-300 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0E4B40] px-6 py-4 text-lg font-bold text-white transition-all duration-300 hover:bg-[#0B3E35] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoading ? "Wird registriert…" : "Jetzt registrieren"}
                 {!isLoading && (
@@ -202,7 +196,7 @@ export default function Register() {
               Bereits ein Konto?{" "}
               <Link
                 href="/login"
-                className="font-semibold text-teal-800 hover:text-teal-700 transition-colors"
+                className="font-semibold text-[#0E4B40] hover:text-[#C99A3E] transition-colors"
               >
                 Jetzt anmelden
               </Link>
@@ -212,7 +206,7 @@ export default function Register() {
           <div className="mt-6 text-center">
             <Link
               href="/"
-              className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+              className="text-sm text-[#4A635C] hover:text-[#0E4B40] transition-colors"
             >
               ← Zurück zur Startseite
             </Link>
