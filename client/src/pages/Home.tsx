@@ -96,7 +96,7 @@ export default function Home() {
                   overflow: "hidden",
                 }}
               >
-                Echte Erinnerungen verdienen einen <span className="text-[#C99A3E]">echten Platz im Leben</span>.
+                Echte Erinnerungen verdienen einen <span className="text-[#C99A3E]">echten Platz im Leben.</span>
               </h1>
               <div className="mt-5 flex justify-start md:hidden">
                 <div className="relative w-full max-w-[19rem] overflow-hidden rounded-[18px] border border-[#C99A3E]/28 bg-white p-2 shadow-[0_20px_45px_rgba(14,75,64,0.18)]" style={{ transform: "rotate(-4deg)" }}>
