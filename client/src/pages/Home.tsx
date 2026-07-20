@@ -89,12 +89,6 @@ export default function Home() {
               </div>
               <h1
                 className="mx-auto max-w-3xl text-left text-[2.4rem] font-black leading-[1.05] tracking-tight text-[#0E4B40] sm:text-5xl md:mx-0 md:max-w-none md:text-6xl md:leading-[1.02]"
-                style={{
-                  display: "-webkit-box",
-                  WebkitBoxOrient: "vertical",
-                  WebkitLineClamp: 3,
-                  overflow: "hidden",
-                }}
               >
                 Echte Erinnerungen verdienen einen <span className="text-[#C99A3E]">echten Platz im Leben.</span>
               </h1>
