@@ -548,18 +548,12 @@ async function startServer() {
 
   const sendPasswordResetMail = async (recipientEmail: string, resetLink: string, requestId: string) => {
     const smtp = getSmtpConfig();
-    console.log(`[auth:${requestId}] SMTP password diagnostic`, {
-      length: smtp.password.length,
-      md5: crypto.createHash("md5").update(smtp.password).digest("hex"),
-    });
     const transporter = nodemailer.createTransport({
       host: smtp.host,
       port: smtp.port,
       secure: smtp.secure,
       requireTLS: !smtp.secure,
       authMethod: "LOGIN",
-      logger: true,
-      debug: true,
       auth: {
         user: smtp.user,
         pass: smtp.password,
