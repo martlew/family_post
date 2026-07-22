@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Camera, Heart, Mail, Pencil, Send, SmartphoneNfc } from "lucide-react";
+import { Camera, Globe, Heart, Mail, Pencil, Send, ShieldCheck, SmartphoneNfc } from "lucide-react";
 import { Link } from "wouter";
 import { setSelectedPlan } from "@/lib/auth";
 import BrandMark from "@/components/BrandMark";
@@ -51,7 +51,7 @@ export default function Home() {
                 Anmelden
               </Button>
             </Link>
-            <Link href="/register">
+            <Link href="/editor">
               <Button className="w-full rounded-full bg-[#0E4B40] text-white hover:bg-[#0B3E35] sm:w-auto">Jetzt Erinnerung versenden</Button>
             </Link>
           </div>
@@ -112,7 +112,7 @@ export default function Home() {
                 Family Post verwandelt deine schönsten Momente in echte Postkarten, die im Briefkasten deiner Liebsten ankommen - persönlich, greifbar und voller Bedeutung.
               </p>
               <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:justify-start">
-                <Link href="/register">
+                <Link href="/editor">
                   <Button className="flex w-full items-center gap-2 rounded-full bg-[#0E4B40] px-7 py-6 text-base font-semibold text-white hover:bg-[#0B3E35] md:text-lg sm:w-auto">
                     <Mail className="h-4 w-4" />
                     Jetzt Freude versenden
@@ -142,8 +142,22 @@ export default function Home() {
               </motion.div>
             </div>
 
-            <div className="hidden md:block">
+            <div className="hidden md:flex md:flex-col md:items-center md:gap-6">
               <HeroPostcardMotion />
+              <ul className="flex flex-col gap-2.5 text-sm font-medium text-emerald-950/80">
+                <li className="flex items-center gap-2">
+                  <Globe className="h-3.5 w-3.5 shrink-0 text-[#C99A3E]" aria-hidden="true" />
+                  Direkt im Browser • Ohne App-Download
+                </li>
+                <li className="flex items-center gap-2">
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[#C99A3E]" aria-hidden="true" />
+                  100 % Werbefrei &amp; Höchster Datenschutz
+                </li>
+                <li className="flex items-center gap-2">
+                  <Send className="h-3.5 w-3.5 shrink-0 text-[#C99A3E]" aria-hidden="true" />
+                  Weltweiter Druck &amp; Direktversand
+                </li>
+              </ul>
             </div>
           </div>
         </motion.section>
@@ -205,7 +219,7 @@ export default function Home() {
               <p className="mt-3 text-base text-[#4A635C] md:text-lg">All-inclusive mit Premium-Druck, echtem Porto und weltweitem Versand.</p>
             </div>
             <div className="mt-8 grid gap-5 md:grid-cols-3">
-              <Link href="/register" onClick={() => handlePlanSelection("single")}>
+              <Link href="/editor" onClick={() => handlePlanSelection("single")}>
                 <article className="h-full cursor-pointer rounded-[24px] border border-[#D9E4DD] bg-white p-6 shadow-[0_18px_50px_rgba(14,75,64,0.08)] transition-all hover:-translate-y-0.5 hover:border-[#C99A3E]/35 hover:shadow-[0_24px_55px_rgba(14,75,64,0.12)]">
                   <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#C99A3E]">Einzelticket</p>
                   <p className="mt-4 text-4xl font-black text-[#0E4B40]">4,99 €</p>
@@ -214,7 +228,7 @@ export default function Home() {
                 </article>
               </Link>
 
-              <Link href="/register" onClick={() => handlePlanSelection("family-5")}>
+              <Link href="/editor" onClick={() => handlePlanSelection("family-5")}>
                 <article className="h-full cursor-pointer rounded-[24px] border border-[#C99A3E]/35 bg-gradient-to-b from-[#E4F1E9] to-white p-6 shadow-[0_22px_60px_rgba(14,75,64,0.10)] transition-all hover:-translate-y-0.5 hover:border-[#C99A3E]/55 hover:shadow-[0_26px_62px_rgba(14,75,64,0.14)]">
                   <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#0E4B40]">Family-Paket (5er)</p>
                   <p className="mt-4 text-4xl font-black text-[#0E4B40]">22,99 €</p>
@@ -223,7 +237,7 @@ export default function Home() {
                 </article>
               </Link>
 
-              <Link href="/register" onClick={() => handlePlanSelection("benefit-10")}>
+              <Link href="/editor" onClick={() => handlePlanSelection("benefit-10")}>
                 <article className="h-full cursor-pointer rounded-[24px] border border-[#D9E4DD] bg-white p-6 shadow-[0_18px_50px_rgba(14,75,64,0.08)] transition-all hover:-translate-y-0.5 hover:border-[#C99A3E]/35 hover:shadow-[0_24px_55px_rgba(14,75,64,0.12)]">
                   <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#0E4B40]">Vorteils-Paket (10er)</p>
                   <p className="mt-4 text-4xl font-black text-[#0E4B40]">39,99 €</p>

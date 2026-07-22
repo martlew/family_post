@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from "react";
-import { Link, useLocation } from "wouter";
+import { useState, useRef } from "react";
+import { Link } from "wouter";
 import { toast } from "sonner";
 import { ArrowLeft, Camera, Mail, RotateCw, Send, Upload, Image as ImageIcon } from "lucide-react";
 import { buildApiUrl, getAuthSession } from "@/lib/auth";
@@ -49,7 +49,6 @@ const TEMPLATE_IMAGES = [
 ];
 
 export default function Editor() {
-  const [, navigate] = useLocation();
   const [imageUrl, setImageUrl] = useState("");
   const [message, setMessage] = useState("");
   const [recipientName, setRecipientName] = useState("");
@@ -63,12 +62,7 @@ export default function Editor() {
   const [activeTab, setActiveTab] = useState<"image" | "text">("image");
   const [promoCode, setPromoCode] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!getAuthSession()) {
-      navigate("/login");
-    }
-  }, [navigate]);
+  const hasSession = Boolean(getAuthSession());
 
   const handlePostalLookup = async (postalCode: string) => {
     if (!/^\d{5}$/.test(postalCode)) {
@@ -221,9 +215,12 @@ export default function Editor() {
       {/* Navigation */}
       <nav className="relative z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <Link href="/dashboard" className="flex items-center gap-3 text-sm text-slate-600 transition-colors cursor-pointer hover:text-teal-800">
+          <Link
+            href={hasSession ? "/dashboard" : "/"}
+            className="flex items-center gap-3 text-sm text-slate-600 transition-colors cursor-pointer hover:text-teal-800"
+          >
             <BrandMark compact />
-            <span>Zurück zum Dashboard</span>
+            <span>{hasSession ? "Zurück zum Dashboard" : "Zurück zur Startseite"}</span>
           </Link>
           <span className="text-xl font-bold text-slate-950">
             Postkarten-Designer
