@@ -62,7 +62,6 @@ async function startServer() {
   };
 
   const sentPostcards = new Map<string, ForwardedPostcard & { id: string; createdAt: string; recipientCity: string }>();
-  const passwordResetTokens = new Map<string, { email: string; expiresAt: number }>();
 
   type PaymentDraftStatus = "pending" | "paid";
   type PaymentPlanKey = "single" | "family-5" | "benefit-10";
@@ -192,6 +191,33 @@ async function startServer() {
     }
 
     return customerCreditsSchemaReady;
+  };
+
+  let usersSchemaReady: Promise<void> | null = null;
+
+  const ensureUsersSchema = () => {
+    if (!usersSchemaReady) {
+      const db = requirePaymentDraftsDb();
+      usersSchemaReady = db.query(`
+        CREATE TABLE IF NOT EXISTS app_users (
+          id TEXT PRIMARY KEY,
+          full_name TEXT NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          salt TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+          token TEXT PRIMARY KEY,
+          email TEXT NOT NULL,
+          expires_at TIMESTAMPTZ NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `).then(() => undefined);
+    }
+
+    return usersSchemaReady;
   };
 
   const mapPaymentDraftRow = (row: PaymentDraftRow): StoredPaymentDraft => {
@@ -524,9 +550,9 @@ async function startServer() {
     const smtp = getSmtpConfig();
     const transporter = nodemailer.createTransport({
       host: smtp.host,
-      port: 587,
-      secure: false,
-      requireTLS: true,
+      port: smtp.port,
+      secure: smtp.secure,
+      requireTLS: !smtp.secure,
       authMethod: "LOGIN",
       logger: true,
       debug: true,
@@ -549,7 +575,7 @@ async function startServer() {
     const verification = await transporter.verify();
     console.log(`[auth:${requestId}] SMTP verify ok (${smtp.host}:${smtp.port})`, verification);
     const sendResult = await transporter.sendMail({
-      from: smtp.user,
+      from: smtp.from,
       to: recipientEmail,
       subject: "Family Post Passwort zurücksetzen",
       text: `Du hast ein neues Passwort angefordert. Öffne diesen Link: ${resetLink}`,
@@ -710,7 +736,23 @@ async function startServer() {
     createdAt: string;
   };
 
-  const users = new Map<string, UserRecord>();
+  type UserRow = {
+    id: string;
+    full_name: string;
+    email: string;
+    password_hash: string;
+    salt: string;
+    created_at: string;
+  };
+
+  const mapUserRow = (row: UserRow): UserRecord => ({
+    id: row.id,
+    fullName: row.full_name,
+    email: row.email,
+    passwordHash: row.password_hash,
+    salt: row.salt,
+    createdAt: row.created_at,
+  });
 
   const hashPassword = (password: string, salt: string) => {
     return crypto.pbkdf2Sync(password, salt, 120000, 64, "sha512").toString("hex");
@@ -718,7 +760,64 @@ async function startServer() {
 
   const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-  app.post("/api/auth/register", (req, res) => {
+  const getUserByEmail = async (email: string): Promise<UserRecord | null> => {
+    await ensureUsersSchema();
+    const db = requirePaymentDraftsDb();
+    const result = await db.query<UserRow>(
+      `SELECT id, full_name, email, password_hash, salt, created_at::text AS created_at FROM app_users WHERE email = $1 LIMIT 1`,
+      [email],
+    );
+    const row = result.rows[0];
+    return row ? mapUserRow(row) : null;
+  };
+
+  const createUser = async (fullName: string, email: string, password: string): Promise<UserRecord> => {
+    await ensureUsersSchema();
+    const db = requirePaymentDraftsDb();
+    const salt = crypto.randomBytes(16).toString("hex");
+    const id = crypto.randomUUID();
+    const passwordHash = hashPassword(password, salt);
+    await db.query(
+      `INSERT INTO app_users (id, full_name, email, password_hash, salt) VALUES ($1, $2, $3, $4, $5)`,
+      [id, fullName, email, passwordHash, salt],
+    );
+    return { id, fullName, email, passwordHash, salt, createdAt: new Date().toISOString() };
+  };
+
+  const updateUserPassword = async (email: string, password: string) => {
+    await ensureUsersSchema();
+    const db = requirePaymentDraftsDb();
+    const salt = crypto.randomBytes(16).toString("hex");
+    const passwordHash = hashPassword(password, salt);
+    await db.query(`UPDATE app_users SET password_hash = $2, salt = $3 WHERE email = $1`, [email, passwordHash, salt]);
+  };
+
+  const createPasswordResetToken = async (email: string) => {
+    await ensureUsersSchema();
+    const db = requirePaymentDraftsDb();
+    const token = crypto.randomUUID();
+    await db.query(
+      `INSERT INTO password_reset_tokens (token, email, expires_at) VALUES ($1, $2, NOW() + INTERVAL '30 minutes')`,
+      [token, email],
+    );
+    return token;
+  };
+
+  const consumePasswordResetToken = async (token: string): Promise<{ email: string } | null> => {
+    await ensureUsersSchema();
+    const db = requirePaymentDraftsDb();
+    const result = await db.query<{ email: string; expires_at: string }>(
+      `DELETE FROM password_reset_tokens WHERE token = $1 RETURNING email, expires_at::text AS expires_at`,
+      [token],
+    );
+    const row = result.rows[0];
+    if (!row || new Date(row.expires_at).getTime() < Date.now()) {
+      return null;
+    }
+    return { email: row.email };
+  };
+
+  app.post("/api/auth/register", async (req, res) => {
     const fullName = String(req.body?.fullName ?? "").trim();
     const email = normalizeEmail(String(req.body?.email ?? ""));
     const password = String(req.body?.password ?? "");
@@ -731,30 +830,25 @@ async function startServer() {
       return res.status(400).json({ error: "Das Passwort muss mindestens 8 Zeichen lang sein." });
     }
 
-    if (users.has(email)) {
-      return res.status(409).json({ error: "Diese E-Mail ist bereits registriert." });
+    try {
+      if (await getUserByEmail(email)) {
+        return res.status(409).json({ error: "Diese E-Mail ist bereits registriert." });
+      }
+
+      const user = await createUser(fullName, email, password);
+      const token = crypto.randomBytes(24).toString("hex");
+      return res.status(201).json({
+        success: true,
+        token,
+        user: { id: user.id, fullName: user.fullName, email: user.email },
+      });
+    } catch (error: any) {
+      console.error("[auth:register] failed", error);
+      return res.status(500).json({ error: error?.message || "Die Registrierung ist fehlgeschlagen." });
     }
-
-    const salt = crypto.randomBytes(16).toString("hex");
-    const user: UserRecord = {
-      id: crypto.randomUUID(),
-      fullName,
-      email,
-      passwordHash: hashPassword(password, salt),
-      salt,
-      createdAt: new Date().toISOString(),
-    };
-    users.set(email, user);
-
-    const token = crypto.randomBytes(24).toString("hex");
-    return res.status(201).json({
-      success: true,
-      token,
-      user: { id: user.id, fullName: user.fullName, email: user.email },
-    });
   });
 
-  app.post("/api/auth/login", (req, res) => {
+  app.post("/api/auth/login", async (req, res) => {
     const email = normalizeEmail(String(req.body?.email ?? ""));
     const password = String(req.body?.password ?? "");
 
@@ -762,22 +856,27 @@ async function startServer() {
       return res.status(400).json({ error: "Bitte E-Mail und Passwort angeben." });
     }
 
-    const user = users.get(email);
-    if (!user) {
-      return res.status(401).json({ error: "E-Mail oder Passwort ist falsch." });
-    }
+    try {
+      const user = await getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ error: "E-Mail oder Passwort ist falsch." });
+      }
 
-    const computedHash = hashPassword(password, user.salt);
-    if (computedHash !== user.passwordHash) {
-      return res.status(401).json({ error: "E-Mail oder Passwort ist falsch." });
-    }
+      const computedHash = hashPassword(password, user.salt);
+      if (computedHash !== user.passwordHash) {
+        return res.status(401).json({ error: "E-Mail oder Passwort ist falsch." });
+      }
 
-    const token = crypto.randomBytes(24).toString("hex");
-    return res.status(200).json({
-      success: true,
-      token,
-      user: { id: user.id, fullName: user.fullName, email: user.email },
-    });
+      const token = crypto.randomBytes(24).toString("hex");
+      return res.status(200).json({
+        success: true,
+        token,
+        user: { id: user.id, fullName: user.fullName, email: user.email },
+      });
+    } catch (error: any) {
+      console.error("[auth:login] failed", error);
+      return res.status(500).json({ error: error?.message || "Die Anmeldung ist fehlgeschlagen." });
+    }
   });
 
   app.post("/api/auth/forgot-password", async (req, res) => {
@@ -789,24 +888,19 @@ async function startServer() {
 
     console.log(`[auth:${requestId}] forgot-password requested`, { email });
 
-    const user = users.get(email);
-    if (!user) {
-      console.log(`[auth:${requestId}] forgot-password no user found`);
-      return res.status(200).json({
-        success: true,
-        message: "Wenn ein Konto mit dieser E-Mail existiert, haben wir einen Reset-Link gesendet.",
-      });
-    }
-
-    const token = crypto.randomUUID();
-    passwordResetTokens.set(token, {
-      email,
-      expiresAt: Date.now() + 1000 * 60 * 30,
-    });
-
-    const resetLink = `${getFrontendBaseUrl()}/reset-password?token=${token}`;
-
     try {
+      const user = await getUserByEmail(email);
+      if (!user) {
+        console.log(`[auth:${requestId}] forgot-password no user found`);
+        return res.status(200).json({
+          success: true,
+          message: "Wenn ein Konto mit dieser E-Mail existiert, haben wir einen Reset-Link gesendet.",
+        });
+      }
+
+      const token = await createPasswordResetToken(email);
+      const resetLink = `${getFrontendBaseUrl()}/reset-password?token=${token}`;
+
       await sendPasswordResetMail(email, resetLink, requestId);
       console.log(`[auth:${requestId}] password reset mail sent to ${email}`);
       return res.status(200).json({
@@ -821,7 +915,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/auth/reset-password", (req, res) => {
+  app.post("/api/auth/reset-password", async (req, res) => {
     const token = String(req.body?.token ?? "").trim();
     const password = String(req.body?.password ?? "");
 
@@ -833,27 +927,27 @@ async function startServer() {
       return res.status(400).json({ error: "Das Passwort muss mindestens 8 Zeichen lang sein." });
     }
 
-    const tokenRecord = passwordResetTokens.get(token);
-    if (!tokenRecord || tokenRecord.expiresAt < Date.now()) {
-      passwordResetTokens.delete(token);
-      return res.status(400).json({ error: "Der Reset-Link ist ungültig oder abgelaufen." });
+    try {
+      const tokenRecord = await consumePasswordResetToken(token);
+      if (!tokenRecord) {
+        return res.status(400).json({ error: "Der Reset-Link ist ungültig oder abgelaufen." });
+      }
+
+      const user = await getUserByEmail(tokenRecord.email);
+      if (!user) {
+        return res.status(404).json({ error: "Das Konto konnte nicht gefunden werden." });
+      }
+
+      await updateUserPassword(tokenRecord.email, password);
+
+      return res.status(200).json({
+        success: true,
+        message: "Das Passwort wurde erfolgreich zurückgesetzt.",
+      });
+    } catch (error: any) {
+      console.error("[auth:reset-password] failed", error);
+      return res.status(500).json({ error: error?.message || "Das Zuruecksetzen ist fehlgeschlagen." });
     }
-
-    const user = users.get(tokenRecord.email);
-    if (!user) {
-      passwordResetTokens.delete(token);
-      return res.status(404).json({ error: "Das Konto konnte nicht gefunden werden." });
-    }
-
-    const salt = crypto.randomBytes(16).toString("hex");
-    user.salt = salt;
-    user.passwordHash = hashPassword(password, salt);
-    passwordResetTokens.delete(token);
-
-    return res.status(200).json({
-      success: true,
-      message: "Das Passwort wurde erfolgreich zurückgesetzt.",
-    });
   });
 
   app.get("/api/auth/health", (_req, res) => {
