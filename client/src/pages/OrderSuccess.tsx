@@ -1,6 +1,7 @@
 import { CheckCircle2, Mail, MoveRight, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import BrandMark from "@/components/BrandMark";
+import Footer from "@/components/Footer";
 
 export default function OrderSuccess() {
   const params = new URLSearchParams(window.location.search);
@@ -57,6 +58,8 @@ export default function OrderSuccess() {
           </div>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

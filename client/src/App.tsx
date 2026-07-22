@@ -12,6 +12,9 @@ import Editor from "./pages/Editor";
 import ShippingStatus from "./pages/ShippingStatus";
 import ResetPassword from "./pages/ResetPassword";
 import OrderSuccess from "./pages/OrderSuccess";
+import Impressum from "./pages/legal/Impressum";
+import Datenschutz from "./pages/legal/Datenschutz";
+import AGB from "./pages/legal/AGB";
 
 function Router() {
   return (
@@ -24,6 +27,9 @@ function Router() {
       <Route path={"/shipping-status/:id"} component={ShippingStatus} />
       <Route path={"/reset-password"} component={ResetPassword} />
       <Route path={"/order-success"} component={OrderSuccess} />
+      <Route path={"/impressum"} component={Impressum} />
+      <Route path={"/datenschutz"} component={Datenschutz} />
+      <Route path={"/agb"} component={AGB} />
       <Route path={"/404"} component={NotFound} />
     </Switch>
   );

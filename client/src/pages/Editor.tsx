@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Camera, Mail, RotateCw, Send, Upload, Image as ImageIcon } from "lucide-react";
 import { buildApiUrl, getAuthSession } from "@/lib/auth";
 import BrandMark from "@/components/BrandMark";
+import Footer from "@/components/Footer";
 
 interface Postcard {
   id: string;
@@ -576,6 +577,8 @@ export default function Editor() {
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useParams } from "wouter";
 import { ArrowLeft, Check, ClipboardList, Loader2, Mail, MapPin, Printer, Truck } from "lucide-react";
 import { buildApiUrl, getAuthSession } from "@/lib/auth";
+import Footer from "@/components/Footer";
 
 interface Postcard {
   id: string;
@@ -281,6 +282,8 @@ export default function ShippingStatus() {
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

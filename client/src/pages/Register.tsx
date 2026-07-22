@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { buildApiUrl, getSelectedPlan, setAuthSession } from "@/lib/auth";
 import BrandMark from "@/components/BrandMark";
+import Footer from "@/components/Footer";
 
 /**
  * FamilyPost Register Page in the same warm visual system as Home and Login.
@@ -213,6 +214,8 @@ export default function Register() {
           </div>
         </motion.div>
       </div>
+
+      <Footer />
     </div>
   );
 }

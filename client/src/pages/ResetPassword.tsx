@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
 import BrandMark from "@/components/BrandMark";
+import Footer from "@/components/Footer";
 import { buildApiUrl } from "@/lib/auth";
 
 export default function ResetPassword() {
@@ -131,6 +132,8 @@ export default function ResetPassword() {
           </form>
         </motion.div>
       </main>
+
+      <Footer />
     </div>
   );
 }

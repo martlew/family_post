@@ -4,6 +4,7 @@ import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { clearAuthSession, getAuthSession } from "@/lib/auth";
 import BrandMark from "@/components/BrandMark";
+import Footer from "@/components/Footer";
 
 interface Postcard {
   id: string;
@@ -392,6 +393,8 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      <Footer />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
 import { buildApiUrl, getSelectedPlan, setAuthSession } from "@/lib/auth";
 import BrandMark from "@/components/BrandMark";
+import Footer from "@/components/Footer";
 
 /**
  * FamilyPost Login Page in the same warm visual system as the landing page.
@@ -234,6 +235,8 @@ export default function Login() {
           </div>
         </motion.div>
       </div>
+
+      <Footer />
 
       {showResetModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">

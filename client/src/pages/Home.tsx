@@ -3,6 +3,7 @@ import { Camera, Heart, Mail, Pencil, Send, SmartphoneNfc } from "lucide-react";
 import { Link } from "wouter";
 import { setSelectedPlan } from "@/lib/auth";
 import BrandMark from "@/components/BrandMark";
+import Footer from "@/components/Footer";
 import HeroPostcardMotion from "@/components/HeroPostcardMotion";
 import { motion, useReducedMotion } from "framer-motion";
 
@@ -235,7 +236,7 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="px-4 pb-12 pt-4 md:pb-16">
+      <div className="px-4 pb-4 pt-4 md:pt-6">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 rounded-[24px] bg-[#0E4B40] px-6 py-10 text-center text-white shadow-[0_24px_70px_rgba(14,75,64,0.22)]">
           <div className="rounded-full bg-[#F7F3EA] px-4 py-2 shadow-sm">
             <BrandMark compact />
@@ -247,7 +248,9 @@ export default function Home() {
             Family Post verbindet digitale Momente mit echtem Papier, echtem Porto und echter Nähe.
           </p>
         </div>
-      </footer>
+      </div>
+
+      <Footer />
     </div>
   );
 }
