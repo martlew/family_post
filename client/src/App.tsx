@@ -12,9 +12,9 @@ import Editor from "./pages/Editor";
 import ShippingStatus from "./pages/ShippingStatus";
 import ResetPassword from "./pages/ResetPassword";
 import OrderSuccess from "./pages/OrderSuccess";
-import Impressum from "./pages/legal/Impressum";
-import Datenschutz from "./pages/legal/Datenschutz";
-import AGB from "./pages/legal/AGB";
+import Impressum from "./pages/Impressum";
+import Datenschutz from "./pages/Datenschutz";
+import AGB from "./pages/AGB";
 
 function Router() {
   return (
