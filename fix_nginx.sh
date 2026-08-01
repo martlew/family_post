@@ -41,14 +41,29 @@ if [[ ! -f "${SSL_CERT}" || ! -f "${SSL_KEY}" ]]; then
   exit 1
 fi
 
-# 1) Disable every other Nginx site that already declares this server_name,
-#    so only the config written below stays active.
+# 1) Disable every other Nginx site that already declares this exact server_name
+#    (as a whole token, so "api.${DOMAIN}" is never matched), so only the
+#    config written below stays active.
 echo "Checking for conflicting Nginx server blocks for ${DOMAIN}..."
-DOMAIN_PATTERN="${DOMAIN//./\\.}"
+
+file_has_domain_conflict() {
+  local file="$1" line token
+  while IFS= read -r line; do
+    line="${line#*server_name}"
+    line="${line%%;*}"
+    for token in ${line}; do
+      if [[ "${token}" == "${DOMAIN}" || "${token}" == "${WWW_DOMAIN}" ]]; then
+        return 0
+      fi
+    done
+  done < <(grep -E '^[[:space:]]*server_name\b' "${file}" 2>/dev/null || true)
+  return 1
+}
+
 for file in "${NGINX_SITES_AVAILABLE}"/* "${NGINX_SITES_ENABLED}"/*; do
   [[ -e "${file}" || -L "${file}" ]] || continue
   [[ "${file}" == "${NGINX_SITE_PATH}" || "${file}" == "${NGINX_SITE_LINK}" ]] && continue
-  grep -qE "server_name[^;]*\b${DOMAIN_PATTERN}\b" "${file}" 2>/dev/null || continue
+  file_has_domain_conflict "${file}" || continue
 
   if [[ "${file}" == "${NGINX_SITES_ENABLED}"/* ]]; then
     echo "  Unlinking conflicting site: ${file}"
@@ -63,14 +78,20 @@ done
 #    running backend container so Nginx can serve them directly as static files.
 mkdir -p "${STATIC_ROOT}"
 if docker inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
-  docker cp "${CONTAINER_NAME}:/app/dist/public/." "${STATIC_ROOT}/" 2>/dev/null || true
+  if ! docker cp "${CONTAINER_NAME}:/app/dist/public/." "${STATIC_ROOT}/"; then
+    echo "Warning: 'docker cp' from ${CONTAINER_NAME}:/app/dist/public failed (see error above)."
+  fi
+else
+  echo "Warning: container ${CONTAINER_NAME} not found (docker inspect failed)."
 fi
 
 STATIC_AVAILABLE=false
 if [[ -f "${STATIC_ROOT}/sitemap.xml" ]]; then
   STATIC_AVAILABLE=true
 else
-  echo "Warning: ${STATIC_ROOT}/sitemap.xml not found. Falling back to proxying /sitemap.xml and /robots.txt to Node."
+  echo "Warning: ${STATIC_ROOT}/sitemap.xml not found after copy attempt. Debug info:"
+  docker exec "${CONTAINER_NAME}" sh -c 'ls -la /app/dist 2>/dev/null; echo ---; ls -la /app/dist/public 2>/dev/null' || true
+  echo "Falling back to proxying /sitemap.xml and /robots.txt to Node."
 fi
 
 cat > "${NGINX_SITE_PATH}" <<EOF
