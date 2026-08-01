@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://foto-post-weltweit.de/sitemap.xml
