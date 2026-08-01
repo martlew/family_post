@@ -15,11 +15,15 @@ WWW_DOMAIN="${WWW_DOMAIN:-www.foto-post-weltweit.de}"
 BACKEND_UPSTREAM="${BACKEND_UPSTREAM:-127.0.0.1:3000}"
 CONTAINER_NAME="${CONTAINER_NAME:-familypost-backend}"
 STATIC_ROOT="${STATIC_ROOT:-/opt/familypost/dist/public}"
+# nginx.conf on this host includes sites by fixed filename (not a sites-enabled/*
+# wildcard), so the existing site file for the root domain must be overwritten
+# in place rather than replaced by a new "${DOMAIN}"-named file.
+SITE_NAME="${SITE_NAME:-familypost}"
 
 NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
-NGINX_SITE_PATH="${NGINX_SITES_AVAILABLE}/${DOMAIN}"
-NGINX_SITE_LINK="${NGINX_SITES_ENABLED}/${DOMAIN}"
+NGINX_SITE_PATH="${NGINX_SITES_AVAILABLE}/${SITE_NAME}"
+NGINX_SITE_LINK="${NGINX_SITES_ENABLED}/${SITE_NAME}"
 
 if [[ "${EUID}" -ne 0 ]]; then
   echo "This script must be run as root (or via sudo)."
