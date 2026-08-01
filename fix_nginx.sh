@@ -64,18 +64,38 @@ file_has_domain_conflict() {
   return 1
 }
 
-for file in "${NGINX_SITES_AVAILABLE}"/* "${NGINX_SITES_ENABLED}"/*; do
-  [[ -e "${file}" || -L "${file}" ]] || continue
-  [[ "${file}" == "${NGINX_SITE_PATH}" || "${file}" == "${NGINX_SITE_LINK}" ]] && continue
+for file in "${NGINX_SITES_AVAILABLE}"/*; do
+  [[ -e "${file}" ]] || continue
+  [[ "${file}" == "${NGINX_SITE_PATH}" ]] && continue
   file_has_domain_conflict "${file}" || continue
 
-  if [[ "${file}" == "${NGINX_SITES_ENABLED}"/* ]]; then
-    echo "  Unlinking conflicting site: ${file}"
-    rm -f "${file}"
-  else
-    echo "  Disabling conflicting config: ${file} -> ${file}.disabled"
-    mv -f "${file}" "${file}.disabled"
+  # Remove the matching sites-enabled symlink (by basename) *before* renaming
+  # the sites-available file, otherwise it's left behind as a dangling symlink
+  # that still breaks `nginx -t` via the sites-enabled/* wildcard include.
+  link="${NGINX_SITES_ENABLED}/$(basename "${file}")"
+  if [[ -e "${link}" || -L "${link}" ]]; then
+    echo "  Unlinking conflicting site: ${link}"
+    rm -f "${link}"
   fi
+  echo "  Disabling conflicting config: ${file} -> ${file}.disabled"
+  mv -f "${file}" "${file}.disabled"
+done
+
+# Clean up any sites-enabled entries not handled above: dangling symlinks left
+# over from previous (buggy) runs, and any remaining conflicting entries.
+for file in "${NGINX_SITES_ENABLED}"/*; do
+  [[ -e "${file}" || -L "${file}" ]] || continue
+  [[ "${file}" == "${NGINX_SITE_LINK}" ]] && continue
+
+  if [[ -L "${file}" && ! -e "${file}" ]]; then
+    echo "  Removing dangling symlink: ${file}"
+    rm -f "${file}"
+    continue
+  fi
+
+  file_has_domain_conflict "${file}" || continue
+  echo "  Unlinking conflicting site: ${file}"
+  rm -f "${file}"
 done
 
 # 2) Copy the built frontend (incl. sitemap.xml / robots.txt) out of the
