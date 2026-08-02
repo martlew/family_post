@@ -5,16 +5,16 @@ set -euo pipefail
 # deployed .env and recreates the backend container so the new values take
 # effect (docker restart alone does NOT re-read --env-file).
 #
-# Usage (on the server, as root):
-#   export MYPOSTCARD_API_KEY='...'
-#   export MYPOSTCARD_USERNAME='...'
-#   export MYPOSTCARD_PASSWORD='...'      # may safely contain $ / @ / etc.
-#   export MYPOSTCARD_CAMPAIGN_ID='...'   # optional
-#   ./sync_mypostcard_env.sh
+# Usage (on the server, as root): ./sync_mypostcard_env.sh
 #
-# Real secrets are intentionally NOT hardcoded in this script - anything
-# committed to git stays in the repo history forever. Export the values as
-# shown above right before running it instead.
+# NOTE: the real values below are baked in on purpose (per explicit request)
+# so this can run with zero setup on the server. This means they are now
+# part of this repo's git history - rotate the MyPostcard API key/password
+# if this repo's history is ever exposed.
+MYPOSTCARD_API_KEY="8bd895e8c0888ea48f0014c"
+MYPOSTCARD_USERNAME="mlewandowski"
+MYPOSTCARD_PASSWORD='m$f430@hjf4G0hwRf4'
+MYPOSTCARD_CAMPAIGN_ID="348"
 
 APP_DIR="${APP_DIR:-/opt/familypost}"
 ENV_FILE="${ENV_FILE:-${APP_DIR}/.env}"
@@ -32,11 +32,6 @@ if [[ ! -f "${ENV_FILE}" ]]; then
   echo "ERROR: ${ENV_FILE} not found." >&2
   exit 1
 fi
-
-: "${MYPOSTCARD_API_KEY:?ERROR: export MYPOSTCARD_API_KEY before running this script.}"
-: "${MYPOSTCARD_USERNAME:?ERROR: export MYPOSTCARD_USERNAME before running this script.}"
-: "${MYPOSTCARD_PASSWORD:?ERROR: export MYPOSTCARD_PASSWORD before running this script.}"
-MYPOSTCARD_CAMPAIGN_ID="${MYPOSTCARD_CAMPAIGN_ID:-}"
 
 # Reads each value from the shell environment via awk's -v (never interpolated
 # into the awk program text), so special characters like $ in the password
