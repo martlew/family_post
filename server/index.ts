@@ -328,6 +328,14 @@ async function startServer() {
     return "single";
   };
 
+  // Real Lemon Squeezy variant IDs, used only when neither the plan-specific
+  // nor the base LEMON_SQUEEZY_VARIANT_ID env var is set.
+  const DEFAULT_LEMON_VARIANT_IDS = {
+    single: "1896112",
+    "family-5": "1896131",
+    "benefit-10": "1896134",
+  } as const;
+
   const getPlanConfig = (planKey: string): PaymentPlanConfig => {
     const normalizedPlan = normalizePlanKey(planKey);
     const resolveVariant = (envName: string, fallback: string | null) => {
@@ -347,9 +355,9 @@ async function startServer() {
     if (rawBaseVariantId && isPlaceholderSecret(rawBaseVariantId)) {
       console.error(`[lemon] LEMON_SQUEEZY_VARIANT_ID is still set to a placeholder value ("${rawBaseVariantId}"). Check the environment variable used to start the familypost-backend container.`);
     }
-    const singleVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_SINGLE", baseVariantId);
-    const familyVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_FAMILY_5", baseVariantId);
-    const benefitVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10", baseVariantId);
+    const singleVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_SINGLE", baseVariantId) || DEFAULT_LEMON_VARIANT_IDS.single;
+    const familyVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_FAMILY_5", baseVariantId) || DEFAULT_LEMON_VARIANT_IDS["family-5"];
+    const benefitVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10", baseVariantId) || DEFAULT_LEMON_VARIANT_IDS["benefit-10"];
 
     if (normalizedPlan === "family-5") {
       return { key: normalizedPlan, credits: 5, variantId: familyVariantId };

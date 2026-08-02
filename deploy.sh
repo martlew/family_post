@@ -54,7 +54,10 @@ SMTP_HOST="${SMTP_HOST:-smtp.invalid}"
 SMTP_PORT="${SMTP_PORT:-587}"
 SMTP_USER="${SMTP_USER:-DUMMY_NOT_CONFIGURED}"
 SMTP_PASSWORD="${SMTP_PASSWORD:-DUMMY_NOT_CONFIGURED}"
-SMTP_FROM="${SMTP_FROM:-\"Family Post <no-reply@foto-post-weltweit.de>\"}"
+# No surrounding quotes: this .env is read via `docker run --env-file`, which
+# (per Docker's docs) does not strip quotes - any "..." here would end up as
+# literal characters wrapping the address and break SMTP command syntax.
+SMTP_FROM="${SMTP_FROM:-Family Post <no-reply@foto-post-weltweit.de>}"
 SMTP_SECURE="${SMTP_SECURE:-false}"
 JWT_SECRET="${JWT_SECRET:-$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')}"
 DB_HOST="${DB_HOST:-familypost_db}"
