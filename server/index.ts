@@ -362,6 +362,136 @@ async function startServer() {
     return { key: "single", credits: 1, variantId: singleVariantId };
   };
 
+  type LemonVariantInfo = {
+    id: string;
+    name: string;
+    productId: string;
+    productName: string;
+    status: string;
+  };
+
+  const fetchLemonVariantsFromApi = async (apiKey: string, storeId: string): Promise<LemonVariantInfo[]> => {
+    const headers = {
+      Accept: "application/vnd.api+json",
+      "Content-Type": "application/vnd.api+json",
+      Authorization: `Bearer ${apiKey}`,
+    };
+
+    const productsRes = await fetch(`https://api.lemonsqueezy.com/v1/products?filter[store_id]=${encodeURIComponent(storeId)}`, { headers });
+    const productsJson: any = await productsRes.json().catch(() => ({}));
+    if (!productsRes.ok) {
+      throw new Error(`Lemon Squeezy products request failed (${productsRes.status}): ${JSON.stringify(productsJson)}`);
+    }
+
+    const variants: LemonVariantInfo[] = [];
+    for (const product of productsJson.data || []) {
+      const variantsRes = await fetch(`https://api.lemonsqueezy.com/v1/variants?filter[product_id]=${encodeURIComponent(product.id)}`, { headers });
+      const variantsJson: any = await variantsRes.json().catch(() => ({}));
+      if (!variantsRes.ok) {
+        console.error(`[lemon] Failed to list variants for product ${product.id} ("${product.attributes?.name}"): ${variantsRes.status}`, variantsJson);
+        continue;
+      }
+
+      for (const variant of variantsJson.data || []) {
+        variants.push({
+          id: String(variant.id),
+          name: variant.attributes?.name || "",
+          productId: String(product.id),
+          productName: product.attributes?.name || "",
+          status: variant.attributes?.status || "unknown",
+        });
+      }
+    }
+
+    return variants;
+  };
+
+  // Short-lived cache so every checkout request doesn't have to hit Lemon
+  // Squeezy's API just to validate the configured variant ID.
+  let lemonVariantCache: { fetchedAt: number; variants: LemonVariantInfo[] } | null = null;
+  const LEMON_VARIANT_CACHE_TTL_MS = 5 * 60 * 1000;
+
+  const getLemonVariantsCached = async (): Promise<LemonVariantInfo[] | null> => {
+    const config = getLemonConfig();
+    if (!config.apiKey) {
+      return null;
+    }
+
+    const now = Date.now();
+    if (lemonVariantCache && now - lemonVariantCache.fetchedAt < LEMON_VARIANT_CACHE_TTL_MS) {
+      return lemonVariantCache.variants;
+    }
+
+    try {
+      const variants = await fetchLemonVariantsFromApi(config.apiKey, config.storeId);
+      lemonVariantCache = { fetchedAt: now, variants };
+      return variants;
+    } catch (error: any) {
+      console.error("[lemon] Failed to fetch variants from the Lemon Squeezy API", error?.message || error);
+      return lemonVariantCache?.variants ?? null;
+    }
+  };
+
+  // Prints every variant Lemon Squeezy actually has for this store so a
+  // misconfigured/stale LEMON_SQUEEZY_VARIANT_ID* shows up immediately in
+  // the container logs instead of as a 404 during checkout.
+  const logLemonVariantsOnStartup = async () => {
+    const config = getLemonConfig();
+    if (!config.apiKey) {
+      return;
+    }
+
+    const variants = await getLemonVariantsCached();
+    if (!variants || variants.length === 0) {
+      console.warn("[lemon] Could not retrieve any variants from the Lemon Squeezy API - check LEMON_SQUEEZY_API_KEY/LEMON_SQUEEZY_STORE_ID.");
+      return;
+    }
+
+    console.log(`[lemon] Found ${variants.length} variant(s) in store ${config.storeId}:`);
+    for (const variant of variants) {
+      console.log(`  - variantId=${variant.id} name="${variant.name}" product="${variant.productName}" status=${variant.status}`);
+    }
+  };
+
+  // Never send a variant ID to Lemon Squeezy that we haven't confirmed
+  // exists in this store - that's what produced the "404: The related
+  // resource does not exist" error. Falls back to a name-based match on the
+  // plan's credit count (e.g. "5" for family-5) when the configured ID is
+  // stale, and only gives up if nothing matches.
+  const resolvePlanVariantId = (plan: PaymentPlanConfig, validVariants: LemonVariantInfo[] | null): string | null => {
+    if (!plan.variantId) {
+      return null;
+    }
+
+    if (!validVariants || validVariants.length === 0) {
+      // Lemon Squeezy API unreachable right now - use the configured value
+      // as-is rather than blocking checkout entirely.
+      return plan.variantId;
+    }
+
+    if (validVariants.some((variant) => variant.id === plan.variantId)) {
+      return plan.variantId;
+    }
+
+    console.error(
+      `[lemon] Configured variant ID "${plan.variantId}" for plan "${plan.key}" does not exist in this store. Valid variant IDs: ${validVariants
+        .map((variant) => `${variant.id} ("${variant.name}", product "${variant.productName}")`)
+        .join(", ")}`,
+    );
+
+    const fallback = validVariants.find((variant) => {
+      const match = `${variant.name} ${variant.productName}`.match(/\d+/);
+      return match ? Number.parseInt(match[0], 10) === plan.credits : false;
+    });
+
+    if (fallback) {
+      console.warn(`[lemon] Falling back to variant ${fallback.id} ("${fallback.name}") for plan "${plan.key}" based on a ${plan.credits}-credit name match. Update LEMON_SQUEEZY_VARIANT_ID_* in .env to silence this.`);
+      return fallback.id;
+    }
+
+    return null;
+  };
+
   const applySuccessfulPayment = async (draftId: string, orderId: string) => {
     await ensurePaymentDraftSchema();
     await ensureCustomerCreditsSchema();
@@ -1085,7 +1215,9 @@ async function startServer() {
     }
 
     const planConfig = getPlanConfig(normalizedSelectedPlan);
-    if (!planConfig.variantId) {
+    const validVariants = await getLemonVariantsCached();
+    const resolvedVariantId = resolvePlanVariantId(planConfig, validVariants);
+    if (!resolvedVariantId) {
       return res.status(500).json({ error: `Missing Lemon Squeezy variant configuration for ${normalizedSelectedPlan}.` });
     }
 
@@ -1120,7 +1252,7 @@ async function startServer() {
       draftId,
       selectedPlan: planConfig.key,
       credits: planConfig.credits,
-      variantId: planConfig.variantId,
+      variantId: resolvedVariantId,
       redirectUrl: checkoutRedirectUrl,
     });
 
@@ -1150,7 +1282,7 @@ async function startServer() {
               },
               product_options: {
                 redirect_url: checkoutRedirectUrl,
-                enabled_variants: [Number.parseInt(planConfig.variantId, 10)].filter(Number.isFinite),
+                enabled_variants: [Number.parseInt(resolvedVariantId, 10)].filter(Number.isFinite),
               },
               checkout_options: {
                 locale: "de",
@@ -1167,7 +1299,7 @@ async function startServer() {
                 data: { type: "stores", id: String(config.storeId) },
               },
               variant: {
-                data: { type: "variants", id: String(planConfig.variantId) },
+                data: { type: "variants", id: String(resolvedVariantId) },
               },
             },
           },
@@ -1405,6 +1537,8 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
+
+  logLemonVariantsOnStartup().catch((error) => console.error("[lemon] Startup variant listing failed", error?.message || error));
 }
 
 startServer().catch(console.error);
