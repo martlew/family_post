@@ -112,6 +112,15 @@ async function startServer() {
   // so it's safe to default rather than require an operator to set it.
   const DEFAULT_LEMON_STORE_ID = "429090";
 
+  // Hardcoded fallback variant IDs so checkout still works even if the
+  // per-plan LEMON_SQUEEZY_VARIANT_ID_* env vars were never set on the host.
+  // Provided directly by the store owner - update here if they ever change.
+  const DEFAULT_LEMON_VARIANT_IDS: Record<"single" | "family-5" | "benefit-10", string> = {
+    single: "f10aee36-f1cb-4533-8cfe-8e59e4b058e4",
+    "family-5": "d441e73c-6f7d-47c4-a4f2-f4f08aee058c",
+    "benefit-10": "f7bfbf95-ca60-456f-8fc4-8dc2b49015e0",
+  };
+
   const getDatabaseConfig = () => {
     const connectionString = process.env.DB_URL?.trim();
     if (connectionString) {
@@ -347,9 +356,9 @@ async function startServer() {
     if (rawBaseVariantId && isPlaceholderSecret(rawBaseVariantId)) {
       console.error(`[lemon] LEMON_SQUEEZY_VARIANT_ID is still set to a placeholder value ("${rawBaseVariantId}"). Check the environment variable used to start the familypost-backend container.`);
     }
-    const singleVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_SINGLE", baseVariantId);
-    const familyVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_FAMILY_5", baseVariantId);
-    const benefitVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10", baseVariantId);
+    const singleVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_SINGLE", baseVariantId) || DEFAULT_LEMON_VARIANT_IDS.single;
+    const familyVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_FAMILY_5", baseVariantId) || DEFAULT_LEMON_VARIANT_IDS["family-5"];
+    const benefitVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10", baseVariantId) || DEFAULT_LEMON_VARIANT_IDS["benefit-10"];
 
     if (normalizedPlan === "family-5") {
       return { key: normalizedPlan, credits: 5, variantId: familyVariantId };

@@ -19,10 +19,10 @@ Single source of truth for the backend on DigitalOcean.
 | `FRONTEND_BASE_URL` | ja fuer Checkout | Oeffentliche Basis-URL des Frontends fuer den Erfolgs-Redirect | `https://foto-post-weltweit.de` |
 | `LEMON_SQUEEZY_API_KEY` | ja fuer Checkout | API-Schluessel fuer Checkout-Erzeugung und Order-Pruefung | Geheim halten, nie ins Repo schreiben; einziges Feld hier, das `deploy.sh` hart erzwingt |
 | `LEMON_SQUEEZY_STORE_ID` | nein | Lemon-Squeezy Store-ID (oeffentlich, keine geheime ID) | Default `429090` in Code und `deploy.sh`, falls leer/Platzhalter |
-| `LEMON_SQUEEZY_VARIANT_ID` | ja fuer Checkout | Basis-Variant-ID, wird fuer alle Plaene verwendet wenn die spezifischen `_SINGLE`/`_FAMILY_5`/`_BENEFIT_10`-Werte fehlen | Die Produkt-/Variant-ID aus Lemon Squeezy |
-| `LEMON_SQUEEZY_VARIANT_ID_SINGLE` | nein | Variant-ID fuer das Einzelticket | Fallback auf `LEMON_SQUEEZY_VARIANT_ID` |
-| `LEMON_SQUEEZY_VARIANT_ID_FAMILY_5` | nein | Variant-ID fuer das 5er-Paket | Fallback auf `LEMON_SQUEEZY_VARIANT_ID` |
-| `LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10` | nein | Variant-ID fuer das 10er-Paket | Fallback auf `LEMON_SQUEEZY_VARIANT_ID` |
+| `LEMON_SQUEEZY_VARIANT_ID` | nein | Basis-Variant-ID, wird fuer alle Plaene verwendet wenn die spezifischen `_SINGLE`/`_FAMILY_5`/`_BENEFIT_10`-Werte fehlen | Falls auch dies leer bleibt, greift der hartkodierte Fallback aus `DEFAULT_LEMON_VARIANT_IDS` in `server/index.ts` |
+| `LEMON_SQUEEZY_VARIANT_ID_SINGLE` | nein | Variant-ID fuer das Einzelticket | Fallback auf `LEMON_SQUEEZY_VARIANT_ID`, dann auf den hartkodierten Default |
+| `LEMON_SQUEEZY_VARIANT_ID_FAMILY_5` | nein | Variant-ID fuer das 5er-Paket | Fallback auf `LEMON_SQUEEZY_VARIANT_ID`, dann auf den hartkodierten Default |
+| `LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10` | nein | Variant-ID fuer das 10er-Paket | Fallback auf `LEMON_SQUEEZY_VARIANT_ID`, dann auf den hartkodierten Default |
 | `LEMON_SQUEEZY_TEST_MODE` | ja fuer Checkout-Test | Aktiviert den Testmodus im Checkout | `true` oder `false` |
 | `DB_HOST` | ja fuer Checkout | Hostname der Postgres-Datenbank fuer Payment-Drafts | In Docker typischerweise `familypost_db` |
 | `DB_PORT` | ja fuer Checkout | Datenbank-Port | Typisch `5432` |
