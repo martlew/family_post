@@ -1469,51 +1469,66 @@ async function startServer() {
         return redirectToSuccess("complete");
       }
 
-      const forwarded = await forwardToMyPostcard({
-        recipientName: updatedDraft.recipientName,
-        recipientAddress: updatedDraft.recipientAddress,
-        recipientPostalCode: updatedDraft.recipientPostalCode,
-        postcardType: "standard",
-        message: updatedDraft.message,
-        selectedPlan: updatedDraft.selectedPlan,
-        source: "familypost-lemonsqueezy",
-        customerEmail: updatedDraft.customerEmail,
-        customerName: updatedDraft.customerName,
-        recipientCity: `${updatedDraft.recipientPostalCode} ${updatedDraft.recipientCity}`.trim(),
-        imageUrl: updatedDraft.imageUrl,
-      });
+      // The payment was already committed as "paid" by applySuccessfulPayment
+      // above (its own DB transaction) before we ever call the print partner.
+      // A MyPostcard outage/bad-credentials failure must not undo that or
+      // leave the customer stuck on the "processing" success page - it's
+      // caught separately here and only logged for manual fulfillment retry.
+      try {
+        const forwarded = await forwardToMyPostcard({
+          recipientName: updatedDraft.recipientName,
+          recipientAddress: updatedDraft.recipientAddress,
+          recipientPostalCode: updatedDraft.recipientPostalCode,
+          postcardType: "standard",
+          message: updatedDraft.message,
+          selectedPlan: updatedDraft.selectedPlan,
+          source: "familypost-lemonsqueezy",
+          customerEmail: updatedDraft.customerEmail,
+          customerName: updatedDraft.customerName,
+          recipientCity: `${updatedDraft.recipientPostalCode} ${updatedDraft.recipientCity}`.trim(),
+          imageUrl: updatedDraft.imageUrl,
+        });
 
-      const forwardedId = String(forwarded?.id || forwarded?.data?.id || draftId);
-      await markPaymentDraftForwarded(draftId, forwardedId);
-      console.log("[payments:complete] forwarded postcard", {
-        draftId,
-        forwardedId,
-        orderId,
-        orderKey,
-      });
-      sentPostcards.set(forwardedId, {
-        id: forwardedId,
-        recipientName: updatedDraft.recipientName,
-        recipientAddress: updatedDraft.recipientAddress,
-        postcardType: "standard",
-        message: updatedDraft.message,
-        selectedPlan: updatedDraft.selectedPlan,
-        source: "familypost-lemonsqueezy",
-        customerEmail: updatedDraft.customerEmail,
-        customerName: updatedDraft.customerName,
-        recipientCity: `${updatedDraft.recipientPostalCode} ${updatedDraft.recipientCity}`.trim(),
-        imageUrl: updatedDraft.imageUrl,
-        createdAt: new Date().toISOString(),
-      });
+        const forwardedId = String(forwarded?.id || forwarded?.data?.id || draftId);
+        await markPaymentDraftForwarded(draftId, forwardedId);
+        console.log("[payments:complete] forwarded postcard", {
+          draftId,
+          forwardedId,
+          orderId,
+          orderKey,
+        });
+        sentPostcards.set(forwardedId, {
+          id: forwardedId,
+          recipientName: updatedDraft.recipientName,
+          recipientAddress: updatedDraft.recipientAddress,
+          postcardType: "standard",
+          message: updatedDraft.message,
+          selectedPlan: updatedDraft.selectedPlan,
+          source: "familypost-lemonsqueezy",
+          customerEmail: updatedDraft.customerEmail,
+          customerName: updatedDraft.customerName,
+          recipientCity: `${updatedDraft.recipientPostalCode} ${updatedDraft.recipientCity}`.trim(),
+          imageUrl: updatedDraft.imageUrl,
+          createdAt: new Date().toISOString(),
+        });
+      } catch (forwardError: any) {
+        console.error("[payments:complete] MyPostcard forwarding failed after payment was already applied - needs manual fulfillment retry", {
+          draftId,
+          orderId,
+          orderKey,
+          error: forwardError?.message || forwardError,
+          stack: forwardError?.stack,
+        });
+      }
+
       console.log("[payments:complete] completed successfully", {
         draftId,
         orderId,
         orderKey,
-        forwardedId,
       });
       return redirectToSuccess("complete");
     } catch (error: any) {
-      console.error("[payments:complete] verification or forwarding failed", {
+      console.error("[payments:complete] verification or payment application failed", {
         draftId,
         orderId,
         orderKey,
