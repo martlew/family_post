@@ -678,7 +678,8 @@ async function startServer() {
   };
 
   const getMyPostcardAuthToken = async (config: ReturnType<typeof getMyPostcardConfig>) => {
-    const response = await fetch(`${config.baseUrl}/api/v1/auth`, {
+    const endpoint = `${config.baseUrl}/api/v1/auth`;
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
@@ -688,9 +689,23 @@ async function startServer() {
       }),
     });
 
-    const data = await response.json().catch(() => ({}));
+    const rawBody = await response.text();
+    let data: any = {};
+    try {
+      data = rawBody ? JSON.parse(rawBody) : {};
+    } catch {
+      data = { raw: rawBody };
+    }
+
     if (!response.ok || !data?.auth_token) {
-      throw new Error(`MyPostcard-Authentifizierung fehlgeschlagen (${response.status}): ${JSON.stringify(data)}`);
+      console.error("[mypostcard] auth request rejected", {
+        endpoint,
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get("content-type"),
+        rawBody,
+      });
+      throw new Error(`MyPostcard-Authentifizierung fehlgeschlagen (${response.status}): ${rawBody}`);
     }
 
     return String(data.auth_token);
