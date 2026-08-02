@@ -10,8 +10,11 @@ API_DOMAIN="${API_DOMAIN:-api.foto-post-weltweit.de}"
 FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://foto-post-weltweit.de,https://www.foto-post-weltweit.de,https://6a566eee41c42012a80dac40--foto-post-weltweit.netlify.app}"
 API_BASE_URL="${API_BASE_URL:-https://api.foto-post-weltweit.de}"
 FRONTEND_BASE_URL="${FRONTEND_BASE_URL:-https://foto-post-weltweit.de}"
-ECHTPOST_API_KEY="${ECHTPOST_API_KEY:-REPLACE_WITH_ECHTPOST_API_KEY}"
-ECHTPOST_API_URL="${ECHTPOST_API_URL:-https://api.echtpost.example/postcards}"
+MYPOSTCARD_API_KEY="${MYPOSTCARD_API_KEY:-REPLACE_WITH_MYPOSTCARD_API_KEY}"
+MYPOSTCARD_USERNAME="${MYPOSTCARD_USERNAME:-REPLACE_WITH_MYPOSTCARD_USERNAME}"
+MYPOSTCARD_PASSWORD="${MYPOSTCARD_PASSWORD:-REPLACE_WITH_MYPOSTCARD_PASSWORD}"
+MYPOSTCARD_CAMPAIGN_ID="${MYPOSTCARD_CAMPAIGN_ID:-}"
+MYPOSTCARD_API_BASE_URL="${MYPOSTCARD_API_BASE_URL:-https://www.mypostcard.com}"
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://foto-post-weltweit.de}"
 LEMON_SQUEEZY_API_KEY="${LEMON_SQUEEZY_API_KEY:-REPLACE_WITH_LEMON_SQUEEZY_API_KEY}"
 LEMON_SQUEEZY_STORE_ID="${LEMON_SQUEEZY_STORE_ID:-REPLACE_WITH_LEMON_SQUEEZY_STORE_ID}"
@@ -99,6 +102,19 @@ else
   rsync -a --delete "${SCRIPT_DIR}/" "${APP_DIR}/"
 fi
 
+# Fail fast instead of silently deploying placeholder secrets (this is how a
+# forgotten `export DB_PASSWORD=...` used to end up as a literal
+# "REPLACE_WITH_POSTGRES_PASSWORD" string in production, which Postgres then
+# rejects with "password authentication failed for user postgres").
+for var_name in MYPOSTCARD_API_KEY MYPOSTCARD_USERNAME MYPOSTCARD_PASSWORD LEMON_SQUEEZY_API_KEY LEMON_SQUEEZY_STORE_ID LEMON_SQUEEZY_VARIANT_ID SMTP_HOST SMTP_USER SMTP_PASSWORD JWT_SECRET DB_PASSWORD; do
+  var_value="${!var_name}"
+  if [[ "${var_value}" == REPLACE_WITH_* ]]; then
+    echo "ERROR: ${var_name} is still set to a placeholder value (${var_value})." >&2
+    echo "Export the real secret before running this script, e.g.: export ${var_name}='...'" >&2
+    exit 1
+  fi
+done
+
 # Write backend env file used by docker run
 cat > "${APP_DIR}/${ENV_REL_PATH}" <<EOF
 PORT=${PORT}
@@ -107,8 +123,11 @@ FRONTEND_ORIGIN=${FRONTEND_ORIGIN}
 API_BASE_URL=${API_BASE_URL}
 PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
 FRONTEND_BASE_URL=${FRONTEND_BASE_URL}
-ECHTPOST_API_KEY=${ECHTPOST_API_KEY}
-ECHTPOST_API_URL=${ECHTPOST_API_URL}
+MYPOSTCARD_API_KEY=${MYPOSTCARD_API_KEY}
+MYPOSTCARD_USERNAME=${MYPOSTCARD_USERNAME}
+MYPOSTCARD_PASSWORD=${MYPOSTCARD_PASSWORD}
+MYPOSTCARD_CAMPAIGN_ID=${MYPOSTCARD_CAMPAIGN_ID}
+MYPOSTCARD_API_BASE_URL=${MYPOSTCARD_API_BASE_URL}
 LEMON_SQUEEZY_API_KEY=${LEMON_SQUEEZY_API_KEY}
 LEMON_SQUEEZY_STORE_ID=${LEMON_SQUEEZY_STORE_ID}
 LEMON_SQUEEZY_VARIANT_ID=${LEMON_SQUEEZY_VARIANT_ID}

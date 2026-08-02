@@ -43,6 +43,17 @@ if [[ ! -f "server/Dockerfile" ]]; then
   exit 1
 fi
 
+# Fail fast if the existing env file still carries a placeholder secret
+# (e.g. DB_PASSWORD=REPLACE_WITH_POSTGRES_PASSWORD) instead of the real value -
+# that's what causes "password authentication failed for user postgres" at
+# runtime instead of a clear error here.
+if [[ -f "${ENV_FILE}" ]] && grep -q '=REPLACE_WITH_' "${ENV_FILE}"; then
+  echo "ERROR: ${ENV_FILE} still contains placeholder secret(s):" >&2
+  grep '=REPLACE_WITH_' "${ENV_FILE}" >&2
+  echo "Fix the real values in ${ENV_FILE} before rebuilding." >&2
+  exit 1
+fi
+
 docker builder prune -f >/dev/null 2>&1 || true
 docker build --no-cache --pull -f "server/Dockerfile" -t "${IMAGE_NAME}" .
 

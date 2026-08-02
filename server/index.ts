@@ -45,20 +45,21 @@ async function startServer() {
     imageUrl?: string;
   };
 
-  type EchtpostRecipientInput = {
+  type MyPostcardRecipientInput = {
     first_name?: string;
     last_name: string;
     street: string;
-    zip: string;
+    zip_code: string;
     city: string;
-    country_code: string;
+    country: string;
   };
 
-  type EchtpostCardRequest = {
-    motive_id: number;
-    content: string;
-    deliver_at: string;
-    recipients: EchtpostRecipientInput[];
+  type MyPostcardOrderRequest = {
+    product_code: string;
+    message: string;
+    image_url: string;
+    recipient: MyPostcardRecipientInput;
+    campaign_id?: string;
   };
 
   const sentPostcards = new Map<string, ForwardedPostcard & { id: string; createdAt: string; recipientCity: string }>();
@@ -101,9 +102,18 @@ async function startServer() {
     forwarded_at: string | null;
   };
 
+  // deploy.sh/fix_env_and_rebuild.sh fall back to this literal string when the
+  // real secret was never exported, so treat it as "unset" instead of letting
+  // it reach Postgres and surface as a cryptic auth failure at query time.
+  const isPlaceholderSecret = (value: string) => /^REPLACE_WITH_/i.test(value);
+
   const getDatabaseConfig = () => {
     const connectionString = process.env.DB_URL?.trim();
     if (connectionString) {
+      if (isPlaceholderSecret(connectionString)) {
+        console.error("[db] DB_URL is still set to a placeholder value; refusing to connect.");
+        return null;
+      }
       return {
         connectionString,
         ssl: String(process.env.DB_SSL || "false").toLowerCase() === "true" ? { rejectUnauthorized: false } : undefined,
@@ -118,6 +128,11 @@ async function startServer() {
     const ssl = String(process.env.DB_SSL || "false").toLowerCase() === "true";
 
     if (!host || !Number.isFinite(port) || !database || !user || !password) {
+      return null;
+    }
+
+    if (isPlaceholderSecret(password)) {
+      console.error("[db] DB_PASSWORD is still set to a placeholder value; refusing to connect. Set the real Postgres password used by the familypost_db container.");
       return null;
     }
 
@@ -137,7 +152,14 @@ async function startServer() {
       return null;
     }
 
-    return new Pool(config);
+    const pool = new Pool(config);
+    // Without this handler, a dropped/failed idle connection (e.g. auth
+    // rejected mid-session) throws an unhandled 'error' event and crashes
+    // the whole Node process instead of just failing the next query.
+    pool.on("error", (err) => {
+      console.error("[db] unexpected error on idle client", err?.message || err);
+    });
+    return pool;
   };
 
   const paymentDraftsDb = getDbPool();
@@ -472,16 +494,33 @@ async function startServer() {
     };
   };
 
-  const getEchtpostConfig = () => {
-    const apiKey = process.env.ECHTPOST_API_KEY?.trim();
-    const endpoint = (process.env.ECHTPOST_API_URL || "https://api.echtpost.de/v2/cards").trim();
-    const motiveId = Number.parseInt(process.env.ECHTPOST_MOTIVE_ID?.trim() || "", 10);
+  const getMyPostcardConfig = () => {
+    const apiKey = process.env.MYPOSTCARD_API_KEY?.trim();
+    const username = process.env.MYPOSTCARD_USERNAME?.trim();
+    const password = process.env.MYPOSTCARD_PASSWORD?.trim();
+    const campaignId = process.env.MYPOSTCARD_CAMPAIGN_ID?.trim();
+    const baseUrl = (process.env.MYPOSTCARD_API_BASE_URL || "https://www.mypostcard.com").trim();
 
-    return {
-      apiKey,
-      endpoint,
-      motiveId: Number.isFinite(motiveId) ? motiveId : null,
-    };
+    return { apiKey, username, password, campaignId, baseUrl };
+  };
+
+  const getMyPostcardAuthToken = async (config: ReturnType<typeof getMyPostcardConfig>) => {
+    const response = await fetch(`${config.baseUrl}/api/v1/auth`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        api_key: config.apiKey || "",
+        username: config.username || "",
+        password: config.password || "",
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.auth_token) {
+      throw new Error(`MyPostcard-Authentifizierung fehlgeschlagen (${response.status}): ${JSON.stringify(data)}`);
+    }
+
+    return String(data.auth_token);
   };
 
   const splitRecipientName = (recipientName: string) => {
@@ -592,41 +631,39 @@ async function startServer() {
     });
   };
 
-  const forwardToEchtpost = async (payload: ForwardedPostcard) => {
-    const { apiKey, endpoint, motiveId } = getEchtpostConfig();
+  const forwardToMyPostcard = async (payload: ForwardedPostcard) => {
+    const config = getMyPostcardConfig();
 
-    if (!apiKey) {
-      throw new Error("Missing ECHTPOST_API_KEY");
+    if (!config.apiKey || !config.username || !config.password) {
+      throw new Error("Missing MYPOSTCARD_API_KEY, MYPOSTCARD_USERNAME or MYPOSTCARD_PASSWORD");
     }
 
-    if (!motiveId) {
-      throw new Error("Missing ECHTPOST_MOTIVE_ID");
+    if (!payload.imageUrl) {
+      throw new Error("Missing imageUrl for MyPostcard order");
     }
 
     const { firstName, lastName } = splitRecipientName(payload.recipientName);
     const resolvedLocation = extractPostalCodeAndCity(payload.recipientPostalCode, payload.recipientCity);
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const deliverAt = dayOfWeek === 0 || dayOfWeek === 6
-      ? new Date(now.getFullYear(), now.getMonth(), now.getDate() + (dayOfWeek === 6 ? 2 : 1)).toISOString().slice(0, 10)
-      : "today";
-    const requestBody: EchtpostCardRequest = {
-      motive_id: motiveId,
-      content: payload.message.replace(/\r\n/g, "\n").trim(),
-      deliver_at: deliverAt,
-      recipients: [
-        {
-          ...(firstName ? { first_name: firstName } : {}),
-          last_name: lastName || payload.recipientName.trim(),
-          street: payload.recipientAddress.trim(),
-          zip: resolvedLocation.postalCode,
-          city: resolvedLocation.city,
-          country_code: "de",
-        },
-      ],
+
+    const requestBody: MyPostcardOrderRequest = {
+      product_code: "J9GCU",
+      message: payload.message.replace(/\r\n/g, "\n").trim(),
+      image_url: payload.imageUrl,
+      recipient: {
+        ...(firstName ? { first_name: firstName } : {}),
+        last_name: lastName || payload.recipientName.trim(),
+        street: payload.recipientAddress.trim(),
+        zip_code: resolvedLocation.postalCode,
+        city: resolvedLocation.city,
+        country: "Deutschland",
+      },
+      ...(config.campaignId ? { campaign_id: config.campaignId } : {}),
     };
 
-    console.log("[echtpost] Sending payload:", JSON.stringify(requestBody));
+    console.log("[mypostcard] Sending payload:", JSON.stringify(requestBody));
+
+    const authToken = await getMyPostcardAuthToken(config);
+    const endpoint = `${config.baseUrl}/api/v1/place_order`;
 
     let upstreamResponse: Response;
     let rawBody = "";
@@ -636,13 +673,13 @@ async function startServer() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify(requestBody),
       });
       rawBody = await upstreamResponse.text();
     } catch (error: any) {
-      console.error("[echtpost] fetch failed", {
+      console.error("[mypostcard] fetch failed", {
         endpoint,
         error: error?.message || error,
         stack: error?.stack,
@@ -658,8 +695,8 @@ async function startServer() {
       data = { raw: rawBody };
     }
 
-    if (!upstreamResponse.ok) {
-      console.error("[echtpost] upstream rejected submission", {
+    if (!upstreamResponse.ok || data?.success === false) {
+      console.error("[mypostcard] upstream rejected submission", {
         endpoint,
         status: upstreamResponse.status,
         statusText: upstreamResponse.statusText,
@@ -667,7 +704,7 @@ async function startServer() {
         rawBody,
         requestBody,
       });
-      const error = new Error(`EchtPost submission failed with status ${upstreamResponse.status}`);
+      const error = new Error(`MyPostcard submission failed with status ${upstreamResponse.status}`);
       (error as Error & { details?: unknown }).details = data;
       throw error;
     }
@@ -962,13 +999,13 @@ async function startServer() {
   });
 
   app.post("/api/checkout", async (req, res) => {
-    const { recipientName, recipientAddress, recipientPostalCode, recipientCity, postcardType, message, selectedPlan } = req.body ?? {};
-    if (!recipientName || !recipientAddress || !recipientPostalCode || !recipientCity || !message) {
-      return res.status(400).json({ error: "recipientName, recipientAddress, recipientPostalCode, recipientCity und message sind erforderlich." });
+    const { recipientName, recipientAddress, recipientPostalCode, recipientCity, postcardType, message, selectedPlan, imageUrl } = req.body ?? {};
+    if (!recipientName || !recipientAddress || !recipientPostalCode || !recipientCity || !message || !imageUrl) {
+      return res.status(400).json({ error: "recipientName, recipientAddress, recipientPostalCode, recipientCity, imageUrl und message sind erforderlich." });
     }
 
     try {
-      const data = await forwardToEchtpost({
+      const data = await forwardToMyPostcard({
         recipientName,
         recipientAddress,
         recipientPostalCode,
@@ -977,11 +1014,12 @@ async function startServer() {
         message,
         selectedPlan: selectedPlan || "single",
         source: "familypost-do-backend",
+        imageUrl,
       });
 
       return res.status(200).json({ success: true, data });
     } catch (error: any) {
-      return res.status(500).json({ error: error?.message || "Failed to submit to EchtPost", details: error?.details || "Unknown error" });
+      return res.status(500).json({ error: error?.message || "Failed to submit to MyPostcard", details: error?.details || "Unknown error" });
     }
   });
 
@@ -1129,7 +1167,8 @@ async function startServer() {
       });
     } catch (error: any) {
       await requirePaymentDraftsDb().query("DELETE FROM payment_drafts WHERE draft_id = $1", [draftId]).catch(() => undefined);
-      return res.status(500).json({ error: error?.message || "Checkout konnte nicht erstellt werden." });
+      console.error("[payments:create-checkout] failed", error?.message || error);
+      return res.status(500).json({ error: "Checkout konnte nicht erstellt werden." });
     }
   });
 
@@ -1255,7 +1294,7 @@ async function startServer() {
         return redirectToSuccess("complete");
       }
 
-      const forwarded = await forwardToEchtpost({
+      const forwarded = await forwardToMyPostcard({
         recipientName: updatedDraft.recipientName,
         recipientAddress: updatedDraft.recipientAddress,
         recipientPostalCode: updatedDraft.recipientPostalCode,

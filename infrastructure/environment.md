@@ -9,9 +9,11 @@ Single source of truth for the backend on DigitalOcean.
 | `PORT` | ja | Port, auf dem der Node-Server laeuft | `3000` |
 | `NODE_ENV` | ja | Laufzeitmodus | `production` |
 | `FRONTEND_ORIGIN` | ja | Erlaubte CORS-Origin(s) des Frontends | Kommagetrennt, z. B. `https://foto-post-weltweit.de,https://www.foto-post-weltweit.de,https://6a566eee41c42012a80dac40--foto-post-weltweit.netlify.app` |
-| `ECHTPOST_API_KEY` | ja | API-Schluessel fuer den externen Postkarten-Provider | Geheim halten, nie ins Repo schreiben |
-| `ECHTPOST_API_URL` | ja | Ziel-Endpoint fuer den externen Postkarten-Provider | Standard ist `https://api.echtpost.de/v2/cards` |
-| `ECHTPOST_MOTIVE_ID` | ja | EchtPost-Motiv-ID fuer den Karten-Request | Eine im Konto vorhandene Motive-ID, z. B. `374` |
+| `MYPOSTCARD_API_KEY` | ja | API-Schluessel fuer die MyPostcard B2B-API (v1.8) | Geheim halten, nie ins Repo schreiben |
+| `MYPOSTCARD_USERNAME` | ja | Account-Benutzername fuer die MyPostcard-Authentifizierung | Geheim halten |
+| `MYPOSTCARD_PASSWORD` | ja | Account-Passwort fuer die MyPostcard-Authentifizierung | Geheim halten |
+| `MYPOSTCARD_CAMPAIGN_ID` | nein | Ordnet Bestellungen optional einer MyPostcard-Kampagne zu | z. B. `374` |
+| `MYPOSTCARD_API_BASE_URL` | nein | Basis-URL der MyPostcard-API; Versand weltweit in unter 24 Stunden, Bildformat 1748x1240 px | Standard ist `https://www.mypostcard.com` |
 | `API_BASE_URL` | ja fuer Checkout | Oeffentliche Basis-URL der API fuer Checkout-Redirects | `https://api.foto-post-weltweit.de` |
 | `PUBLIC_BASE_URL` | ja fuer Checkout | Alternative oeffentliche Basis-URL der API fuer Checkout-Redirects | Fallback fuer alte Deployments |
 | `FRONTEND_BASE_URL` | ja fuer Checkout | Oeffentliche Basis-URL des Frontends fuer den Erfolgs-Redirect | `https://foto-post-weltweit.de` |
@@ -26,7 +28,7 @@ Single source of truth for the backend on DigitalOcean.
 | `DB_PORT` | ja fuer Checkout | Datenbank-Port | Typisch `5432` |
 | `DB_NAME` | ja fuer Checkout | Name der Datenbank | In der Produktion `familypost` |
 | `DB_USER` | ja fuer Checkout | Datenbank-Benutzer | In der Produktion meist `postgres` |
-| `DB_PASSWORD` | ja fuer Checkout | Datenbank-Passwort | Geheim halten |
+| `DB_PASSWORD` | ja fuer Checkout | Datenbank-Passwort | Muss exakt dem `POSTGRES_PASSWORD` entsprechen, mit dem der `familypost_db`-Container erstellt wurde (kein docker-compose.yml im Repo, Container wird manuell auf dem Droplet betrieben). Weicht es ab, schlaegt `create-checkout` mit `password authentication failed for user "postgres"` fehl. `deploy.sh`/`fix_env_and_rebuild.sh` brechen jetzt hart ab, wenn hier noch ein `REPLACE_WITH_...`-Platzhalter steht. |
 | `DB_SSL` | nein | TLS fuer die DB-Verbindung | `true` oder `false`, lokal meist `false` |
 | `DB_URL` | alternativ | Vollstaendige DB-Verbindungszeichenkette | Kann die einzelnen `DB_*`-Werte ersetzen |
 | `SMTP_HOST` | ja fuer Reset-Mail | SMTP-Server fuer Passwort-Reset-E-Mails | Hostname des Mailservers |
