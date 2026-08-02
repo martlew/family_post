@@ -102,10 +102,15 @@ async function startServer() {
     forwarded_at: string | null;
   };
 
-  // deploy.sh/fix_env_and_rebuild.sh fall back to this literal string when the
-  // real secret was never exported, so treat it as "unset" instead of letting
-  // it reach Postgres and surface as a cryptic auth failure at query time.
-  const isPlaceholderSecret = (value: string) => /^REPLACE_WITH_/i.test(value);
+  // deploy.sh/fix_env_and_rebuild.sh fall back to these literal strings when
+  // the real secret was never exported, so treat them as "unset" instead of
+  // letting them reach Postgres/Lemon Squeezy and surface as a cryptic
+  // failure deep inside a request.
+  const isPlaceholderSecret = (value: string) => /^(REPLACE_WITH_|DUMMY_NOT_CONFIGURED)/i.test(value);
+
+  // Lemon Squeezy store ID is public (same value ships in VITE_LEMON_SQUEEZY_STORE_ID),
+  // so it's safe to default rather than require an operator to set it.
+  const DEFAULT_LEMON_STORE_ID = "429090";
 
   const getDatabaseConfig = () => {
     const connectionString = process.env.DB_URL?.trim();
@@ -499,10 +504,15 @@ async function startServer() {
 
   const getLemonConfig = () => {
     const apiKey = process.env.LEMON_SQUEEZY_API_KEY?.trim() || process.env.VITE_LEMON_SQUEEZY_API_KEY?.trim();
-    const storeId = process.env.LEMON_SQUEEZY_STORE_ID?.trim() || process.env.VITE_LEMON_SQUEEZY_STORE_ID?.trim();
+    const rawStoreId = process.env.LEMON_SQUEEZY_STORE_ID?.trim() || process.env.VITE_LEMON_SQUEEZY_STORE_ID?.trim();
     const variantId = process.env.LEMON_SQUEEZY_VARIANT_ID?.trim() || process.env.VITE_LEMON_SQUEEZY_VARIANT_ID?.trim();
 
-    const resolved: Record<string, string | undefined> = { LEMON_SQUEEZY_API_KEY: apiKey, LEMON_SQUEEZY_STORE_ID: storeId, LEMON_SQUEEZY_VARIANT_ID: variantId };
+    const storeId = rawStoreId && !isPlaceholderSecret(rawStoreId) ? rawStoreId : DEFAULT_LEMON_STORE_ID;
+    if (!rawStoreId || isPlaceholderSecret(rawStoreId)) {
+      console.warn(`[lemon] LEMON_SQUEEZY_STORE_ID is not set (or a placeholder); using the default store ${DEFAULT_LEMON_STORE_ID}.`);
+    }
+
+    const resolved: Record<string, string | undefined> = { LEMON_SQUEEZY_API_KEY: apiKey, LEMON_SQUEEZY_VARIANT_ID: variantId };
     for (const [name, value] of Object.entries(resolved)) {
       if (!value) {
         console.error(`[lemon] ${name} is not set on this host/container. Check the ${name} environment variable used to start the familypost-backend container.`);
@@ -513,7 +523,7 @@ async function startServer() {
 
     return {
       apiKey: apiKey && !isPlaceholderSecret(apiKey) ? apiKey : undefined,
-      storeId: storeId && !isPlaceholderSecret(storeId) ? storeId : undefined,
+      storeId,
       variantId: variantId && !isPlaceholderSecret(variantId) ? variantId : undefined,
       testMode: String(process.env.LEMON_SQUEEZY_TEST_MODE || "false").toLowerCase() === "true",
     };

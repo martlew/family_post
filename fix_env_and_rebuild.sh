@@ -43,15 +43,23 @@ if [[ ! -f "server/Dockerfile" ]]; then
   exit 1
 fi
 
-# Fail fast if the existing env file still carries a placeholder secret
-# (e.g. DB_PASSWORD=REPLACE_WITH_POSTGRES_PASSWORD) instead of the real value -
-# that's what causes "password authentication failed for user postgres" at
-# runtime instead of a clear error here.
-if [[ -f "${ENV_FILE}" ]] && grep -q '=REPLACE_WITH_' "${ENV_FILE}"; then
-  echo "ERROR: ${ENV_FILE} still contains placeholder secret(s):" >&2
-  grep '=REPLACE_WITH_' "${ENV_FILE}" >&2
-  echo "Fix the real values in ${ENV_FILE} before rebuilding." >&2
-  exit 1
+# Fail fast only if a critical secret (payments API key or DB password) still
+# carries a placeholder value - that's what causes "password authentication
+# failed for user postgres" at runtime instead of a clear error here. Other
+# vars (print-partner keys, SMTP, variant IDs) just get a warning so this
+# script doesn't block a rebuild over unrelated missing features.
+if [[ -f "${ENV_FILE}" ]]; then
+  if grep -qE '^(LEMON_SQUEEZY_API_KEY|DB_PASSWORD|DB_URL)=REPLACE_WITH_' "${ENV_FILE}"; then
+    echo "ERROR: ${ENV_FILE} still contains a placeholder for a critical secret:" >&2
+    grep -E '^(LEMON_SQUEEZY_API_KEY|DB_PASSWORD|DB_URL)=REPLACE_WITH_' "${ENV_FILE}" >&2
+    echo "Fix the real value(s) in ${ENV_FILE} (e.g. via ./setup_env.sh) before rebuilding." >&2
+    exit 1
+  fi
+  if grep -q '=REPLACE_WITH_\|=DUMMY_NOT_CONFIGURED' "${ENV_FILE}"; then
+    echo "WARNING: ${ENV_FILE} still has unconfigured non-critical values:" >&2
+    grep '=REPLACE_WITH_\|=DUMMY_NOT_CONFIGURED' "${ENV_FILE}" >&2
+    echo "The related features won't work until you set them, e.g. via ./setup_env.sh." >&2
+  fi
 fi
 
 docker builder prune -f >/dev/null 2>&1 || true

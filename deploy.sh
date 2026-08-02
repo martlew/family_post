@@ -4,40 +4,39 @@ set -euo pipefail
 # ============================================
 # FamilyPost backend one-shot deploy script
 # ============================================
-# Secrets are never hardcoded/defaulted here - they must already exist as
-# environment variables on the host (or be exported right before running
-# this script, e.g. `export LEMON_SQUEEZY_API_KEY='...'`). Using bash's
-# "${VAR:?message}" form makes the script abort immediately with a precise
-# per-variable error instead of silently falling back to a placeholder that
-# then gets baked into the container's .env (which is how the backend ended
-# up logging `variantId: 'REPLACE_WITH_LEMON_SQUEEZY_VARIANT_ID'` and
-# `password authentication failed for user "postgres"`).
-# Non-secret values below keep sensible defaults.
+# Only secrets that would silently break payment/data integrity if wrong
+# (Lemon Squeezy API key, DB password/URL) are required with no default -
+# using bash's "${VAR:?message}" form so the script aborts immediately with
+# a precise per-variable error instead of baking a placeholder into the
+# container's .env. Everything else (print-partner keys, SMTP, JWT, store/
+# variant IDs) gets a safe dummy default and a printed warning instead of
+# blocking the deploy - run ./setup_env.sh afterwards to fill in real values
+# for those without needing nano.
 API_DOMAIN="${API_DOMAIN:-api.foto-post-weltweit.de}"
 # Allow the production frontend plus the current temporary Netlify deploy URL.
 FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://foto-post-weltweit.de,https://www.foto-post-weltweit.de,https://6a566eee41c42012a80dac40--foto-post-weltweit.netlify.app}"
 API_BASE_URL="${API_BASE_URL:-https://api.foto-post-weltweit.de}"
 FRONTEND_BASE_URL="${FRONTEND_BASE_URL:-https://foto-post-weltweit.de}"
-MYPOSTCARD_API_KEY="${MYPOSTCARD_API_KEY:?ERROR: MYPOSTCARD_API_KEY is not set on the host. Export it before running this script.}"
-MYPOSTCARD_USERNAME="${MYPOSTCARD_USERNAME:?ERROR: MYPOSTCARD_USERNAME is not set on the host. Export it before running this script.}"
-MYPOSTCARD_PASSWORD="${MYPOSTCARD_PASSWORD:?ERROR: MYPOSTCARD_PASSWORD is not set on the host. Export it before running this script.}"
+MYPOSTCARD_API_KEY="${MYPOSTCARD_API_KEY:-DUMMY_NOT_CONFIGURED}"
+MYPOSTCARD_USERNAME="${MYPOSTCARD_USERNAME:-DUMMY_NOT_CONFIGURED}"
+MYPOSTCARD_PASSWORD="${MYPOSTCARD_PASSWORD:-DUMMY_NOT_CONFIGURED}"
 MYPOSTCARD_CAMPAIGN_ID="${MYPOSTCARD_CAMPAIGN_ID:-}"
 MYPOSTCARD_API_BASE_URL="${MYPOSTCARD_API_BASE_URL:-https://www.mypostcard.com}"
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://foto-post-weltweit.de}"
 LEMON_SQUEEZY_API_KEY="${LEMON_SQUEEZY_API_KEY:?ERROR: LEMON_SQUEEZY_API_KEY is not set on the host. Export it before running this script.}"
-LEMON_SQUEEZY_STORE_ID="${LEMON_SQUEEZY_STORE_ID:?ERROR: LEMON_SQUEEZY_STORE_ID is not set on the host. Export it before running this script.}"
-LEMON_SQUEEZY_VARIANT_ID="${LEMON_SQUEEZY_VARIANT_ID:?ERROR: LEMON_SQUEEZY_VARIANT_ID is not set on the host. Export it before running this script.}"
+LEMON_SQUEEZY_STORE_ID="${LEMON_SQUEEZY_STORE_ID:-429090}"
+LEMON_SQUEEZY_VARIANT_ID="${LEMON_SQUEEZY_VARIANT_ID:-}"
 LEMON_SQUEEZY_VARIANT_ID_SINGLE="${LEMON_SQUEEZY_VARIANT_ID_SINGLE:-}"
 LEMON_SQUEEZY_VARIANT_ID_FAMILY_5="${LEMON_SQUEEZY_VARIANT_ID_FAMILY_5:-}"
 LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10="${LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10:-}"
 LEMON_SQUEEZY_TEST_MODE="${LEMON_SQUEEZY_TEST_MODE:-true}"
-SMTP_HOST="${SMTP_HOST:?ERROR: SMTP_HOST is not set on the host. Export it before running this script.}"
+SMTP_HOST="${SMTP_HOST:-smtp.invalid}"
 SMTP_PORT="${SMTP_PORT:-587}"
-SMTP_USER="${SMTP_USER:?ERROR: SMTP_USER is not set on the host. Export it before running this script.}"
-SMTP_PASSWORD="${SMTP_PASSWORD:?ERROR: SMTP_PASSWORD is not set on the host. Export it before running this script.}"
+SMTP_USER="${SMTP_USER:-DUMMY_NOT_CONFIGURED}"
+SMTP_PASSWORD="${SMTP_PASSWORD:-DUMMY_NOT_CONFIGURED}"
 SMTP_FROM="${SMTP_FROM:-\"Family Post <no-reply@foto-post-weltweit.de>\"}"
 SMTP_SECURE="${SMTP_SECURE:-false}"
-JWT_SECRET="${JWT_SECRET:?ERROR: JWT_SECRET is not set on the host. Export it before running this script.}"
+JWT_SECRET="${JWT_SECRET:-$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')}"
 DB_HOST="${DB_HOST:-familypost_db}"
 DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${DB_NAME:-familypost}"
@@ -121,16 +120,25 @@ else
   rsync -a --delete "${SCRIPT_DIR}/" "${APP_DIR}/"
 fi
 
-# Fail fast instead of silently deploying placeholder secrets (this is how a
-# forgotten `export DB_PASSWORD=...` used to end up as a literal
-# "REPLACE_WITH_POSTGRES_PASSWORD" string in production, which Postgres then
-# rejects with "password authentication failed for user postgres").
-for var_name in MYPOSTCARD_API_KEY MYPOSTCARD_USERNAME MYPOSTCARD_PASSWORD LEMON_SQUEEZY_API_KEY LEMON_SQUEEZY_STORE_ID LEMON_SQUEEZY_VARIANT_ID SMTP_HOST SMTP_USER SMTP_PASSWORD JWT_SECRET DB_PASSWORD; do
+# Fail fast only for the secrets that would silently corrupt payments/data if
+# wrong (this is how a forgotten `export DB_PASSWORD=...` used to end up as a
+# literal "REPLACE_WITH_POSTGRES_PASSWORD" string in production, which
+# Postgres then rejects with "password authentication failed for user
+# postgres"). Everything else just gets a warning below - run ./setup_env.sh
+# afterwards to fill in real values without touching nano.
+for var_name in LEMON_SQUEEZY_API_KEY DB_PASSWORD; do
   var_value="${!var_name}"
   if [[ "${var_value}" == REPLACE_WITH_* ]]; then
     echo "ERROR: ${var_name} is still set to a placeholder value (${var_value})." >&2
     echo "Export the real secret before running this script, e.g.: export ${var_name}='...'" >&2
     exit 1
+  fi
+done
+
+for var_name in MYPOSTCARD_API_KEY MYPOSTCARD_USERNAME MYPOSTCARD_PASSWORD LEMON_SQUEEZY_VARIANT_ID SMTP_USER SMTP_PASSWORD; do
+  var_value="${!var_name}"
+  if [[ "${var_value}" == DUMMY_NOT_CONFIGURED || -z "${var_value}" ]]; then
+    echo "WARNING: ${var_name} is not configured (using a dummy value); the related feature will not work until you set it, e.g. via ./setup_env.sh." >&2
   fi
 done
 

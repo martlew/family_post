@@ -17,9 +17,9 @@ Single source of truth for the backend on DigitalOcean.
 | `API_BASE_URL` | ja fuer Checkout | Oeffentliche Basis-URL der API fuer Checkout-Redirects | `https://api.foto-post-weltweit.de` |
 | `PUBLIC_BASE_URL` | ja fuer Checkout | Alternative oeffentliche Basis-URL der API fuer Checkout-Redirects | Fallback fuer alte Deployments |
 | `FRONTEND_BASE_URL` | ja fuer Checkout | Oeffentliche Basis-URL des Frontends fuer den Erfolgs-Redirect | `https://foto-post-weltweit.de` |
-| `LEMON_SQUEEZY_API_KEY` | ja fuer Checkout | API-Schluessel fuer Checkout-Erzeugung und Order-Pruefung | Geheim halten, nie ins Repo schreiben |
-| `LEMON_SQUEEZY_STORE_ID` | ja fuer Checkout | Lemon-Squeezy Store-ID | Die Store-ID aus dem Lemon-Squeezy-Dashboard |
-| `LEMON_SQUEEZY_VARIANT_ID` | ja fuer Checkout | Variants-ID des Family-Post-Angebots | Die Produkt-/Variant-ID aus Lemon Squeezy |
+| `LEMON_SQUEEZY_API_KEY` | ja fuer Checkout | API-Schluessel fuer Checkout-Erzeugung und Order-Pruefung | Geheim halten, nie ins Repo schreiben; einziges Feld hier, das `deploy.sh` hart erzwingt |
+| `LEMON_SQUEEZY_STORE_ID` | nein | Lemon-Squeezy Store-ID (oeffentlich, keine geheime ID) | Default `429090` in Code und `deploy.sh`, falls leer/Platzhalter |
+| `LEMON_SQUEEZY_VARIANT_ID` | ja fuer Checkout | Basis-Variant-ID, wird fuer alle Plaene verwendet wenn die spezifischen `_SINGLE`/`_FAMILY_5`/`_BENEFIT_10`-Werte fehlen | Die Produkt-/Variant-ID aus Lemon Squeezy |
 | `LEMON_SQUEEZY_VARIANT_ID_SINGLE` | nein | Variant-ID fuer das Einzelticket | Fallback auf `LEMON_SQUEEZY_VARIANT_ID` |
 | `LEMON_SQUEEZY_VARIANT_ID_FAMILY_5` | nein | Variant-ID fuer das 5er-Paket | Fallback auf `LEMON_SQUEEZY_VARIANT_ID` |
 | `LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10` | nein | Variant-ID fuer das 10er-Paket | Fallback auf `LEMON_SQUEEZY_VARIANT_ID` |
@@ -28,9 +28,9 @@ Single source of truth for the backend on DigitalOcean.
 | `DB_PORT` | ja fuer Checkout | Datenbank-Port | Typisch `5432` |
 | `DB_NAME` | ja fuer Checkout | Name der Datenbank | In der Produktion `familypost` |
 | `DB_USER` | ja fuer Checkout | Datenbank-Benutzer | In der Produktion meist `postgres` |
-| `DB_PASSWORD` | ja fuer Checkout | Datenbank-Passwort | Muss exakt dem `POSTGRES_PASSWORD` entsprechen, mit dem der `familypost_db`-Container erstellt wurde (kein docker-compose.yml im Repo, Container wird manuell auf dem Droplet betrieben). Weicht es ab, schlaegt `create-checkout` mit `password authentication failed for user "postgres"` fehl. `deploy.sh`/`fix_env_and_rebuild.sh` brechen jetzt hart ab, wenn hier noch ein `REPLACE_WITH_...`-Platzhalter steht. |
+| `DB_PASSWORD` | ja fuer Checkout | Datenbank-Passwort | Muss exakt dem `POSTGRES_PASSWORD` entsprechen, mit dem der `familypost_db`-Container erstellt wurde (kein docker-compose.yml im Repo, Container wird manuell auf dem Droplet betrieben). Weicht es ab, schlaegt `create-checkout` mit `password authentication failed for user "postgres"` fehl. `deploy.sh`/`fix_env_and_rebuild.sh` brechen nur bei diesem und `LEMON_SQUEEZY_API_KEY`/`DB_URL` hart ab, wenn noch ein `REPLACE_WITH_...`-Platzhalter steht - alle anderen Variablen bekommen einen Dummy-Default plus Warnung. Zum Nachtragen echter Werte ohne `nano`: `./setup_env.sh`. |
 | `DB_SSL` | nein | TLS fuer die DB-Verbindung | `true` oder `false`, lokal meist `false` |
-| `DB_URL` | alternativ | Vollstaendige DB-Verbindungszeichenkette | Kann die einzelnen `DB_*`-Werte ersetzen |
+| `DB_URL` | alternativ | Vollstaendige DB-Verbindungszeichenkette | Kann die einzelnen `DB_*`-Werte ersetzen; Alias `DATABASE_URL` wird von `deploy.sh` ebenfalls akzeptiert |
 | `SMTP_HOST` | ja fuer Reset-Mail | SMTP-Server fuer Passwort-Reset-E-Mails | Hostname des Mailservers |
 | `SMTP_PORT` | ja fuer Reset-Mail | SMTP-Port | Typisch `587` oder `465` |
 | `SMTP_USER` | ja fuer Reset-Mail | SMTP-Benutzer | Mailbox oder SMTP-Login |
