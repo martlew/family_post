@@ -37,10 +37,13 @@ API_DOMAIN="${API_DOMAIN:-api.foto-post-weltweit.de}"
 FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://foto-post-weltweit.de,https://www.foto-post-weltweit.de,https://6a566eee41c42012a80dac40--foto-post-weltweit.netlify.app}"
 API_BASE_URL="${API_BASE_URL:-https://api.foto-post-weltweit.de}"
 FRONTEND_BASE_URL="${FRONTEND_BASE_URL:-https://foto-post-weltweit.de}"
-MYPOSTCARD_API_KEY="${MYPOSTCARD_API_KEY:-DUMMY_NOT_CONFIGURED}"
-MYPOSTCARD_USERNAME="${MYPOSTCARD_USERNAME:-DUMMY_NOT_CONFIGURED}"
-MYPOSTCARD_PASSWORD="${MYPOSTCARD_PASSWORD:-DUMMY_NOT_CONFIGURED}"
-MYPOSTCARD_CAMPAIGN_ID="${MYPOSTCARD_CAMPAIGN_ID:-}"
+# MyPostcard credentials default to the real production values (rather than
+# a DUMMY_NOT_CONFIGURED placeholder) so a redeploy can never regress them -
+# only an explicit `export MYPOSTCARD_...=...` overrides these.
+MYPOSTCARD_API_KEY="${MYPOSTCARD_API_KEY:-8bd895e8c0888ea48f0014c}"
+MYPOSTCARD_USERNAME="${MYPOSTCARD_USERNAME:-mlewandowski}"
+MYPOSTCARD_PASSWORD="${MYPOSTCARD_PASSWORD:-m\$f430@hjf4G0hwRf4}"
+MYPOSTCARD_CAMPAIGN_ID="${MYPOSTCARD_CAMPAIGN_ID:-348}"
 MYPOSTCARD_API_BASE_URL="${MYPOSTCARD_API_BASE_URL:-https://www.mypostcard.com}"
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://foto-post-weltweit.de}"
 LEMON_SQUEEZY_API_KEY="${LEMON_SQUEEZY_API_KEY:?ERROR: LEMON_SQUEEZY_API_KEY is not set on the host. Export it before running this script.}"
@@ -140,7 +143,12 @@ else
     git -C "${SCRIPT_DIR}" fetch origin "${REPO_BRANCH}" || true
     git -C "${SCRIPT_DIR}" reset --hard "origin/${REPO_BRANCH}" || true
   fi
-  rsync -a --delete "${SCRIPT_DIR}/" "${APP_DIR}/"
+  # --exclude='.env': SCRIPT_DIR is a git checkout and .env is gitignored, so
+  # it never exists there - without this exclude, `--delete` would wipe the
+  # real .env already sitting in APP_DIR right before it gets regenerated
+  # below, which is what was silently resetting MyPostcard/other credentials
+  # to their defaults on every redeploy.
+  rsync -a --delete --exclude='.env' "${SCRIPT_DIR}/" "${APP_DIR}/"
 fi
 
 # Fail fast only for the secrets that would silently corrupt payments/data if
