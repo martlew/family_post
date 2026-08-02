@@ -833,16 +833,21 @@ async function startServer() {
     const { firstName, lastName } = splitRecipientName(payload.recipientName);
     const resolvedLocation = extractPostalCodeAndCity(payload.recipientPostalCode, payload.recipientCity);
 
+    // MyPostcard's upstream has rejected orders (403) containing "&" or
+    // parentheses in the recipient's address fields, so sanitize defensively.
+    const sanitizeRecipientText = (value: string) => value.replace(/&/g, "und").trim();
+    const sanitizeCity = (value: string) => sanitizeRecipientText(value).replace(/[()]/g, "").trim();
+
     const requestBody: MyPostcardOrderRequest = {
       product_code: "J9GCU",
       message: payload.message.replace(/\r\n/g, "\n").trim(),
       image_url: payload.imageUrl,
       recipient: {
-        ...(firstName ? { first_name: firstName } : {}),
-        last_name: lastName || payload.recipientName.trim(),
-        street: payload.recipientAddress.trim(),
+        ...(firstName ? { first_name: sanitizeRecipientText(firstName) } : {}),
+        last_name: sanitizeRecipientText(lastName || payload.recipientName.trim()),
+        street: sanitizeRecipientText(payload.recipientAddress.trim()),
         zip_code: resolvedLocation.postalCode,
-        city: resolvedLocation.city,
+        city: sanitizeCity(resolvedLocation.city),
         country: "Deutschland",
       },
       ...(config.campaignId ? { campaign_id: config.campaignId } : {}),
@@ -884,6 +889,7 @@ async function startServer() {
     }
 
     if (!upstreamResponse.ok || data?.success === false) {
+      console.error("[mypostcard:order_error]", rawBody);
       console.error("[mypostcard] upstream rejected submission", {
         endpoint,
         status: upstreamResponse.status,
