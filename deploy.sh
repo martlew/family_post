@@ -12,6 +12,26 @@ set -euo pipefail
 # variant IDs) gets a safe dummy default and a printed warning instead of
 # blocking the deploy - run ./setup_env.sh afterwards to fill in real values
 # for those without needing nano.
+#
+# Values already present in the previously-deployed /opt/familypost/.env are
+# picked up automatically, so a manual `export FOO=...` in the host terminal
+# is no longer required - it's only needed to override what's already there.
+APP_ENV_FILE="${APP_ENV_FILE:-/opt/familypost/.env}"
+if [[ -f "${APP_ENV_FILE}" ]]; then
+  echo "Loading existing values from ${APP_ENV_FILE} (already-exported host env vars still take precedence)..."
+  while IFS='=' read -r env_key env_value || [[ -n "${env_key}" ]]; do
+    [[ -z "${env_key}" || "${env_key}" == \#* ]] && continue
+    # Strip one layer of literal surrounding quotes - this reads the file as
+    # plain text (no `source`/`eval`), so a "$" inside a value (e.g. a
+    # password) is never expanded by the shell.
+    env_value="${env_value%\"}"; env_value="${env_value#\"}"
+    env_value="${env_value%\'}"; env_value="${env_value#\'}"
+    if [[ -z "${!env_key:-}" ]]; then
+      export "${env_key}=${env_value}"
+    fi
+  done < "${APP_ENV_FILE}"
+fi
+
 API_DOMAIN="${API_DOMAIN:-api.foto-post-weltweit.de}"
 # Allow the production frontend plus the current temporary Netlify deploy URL.
 FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://foto-post-weltweit.de,https://www.foto-post-weltweit.de,https://6a566eee41c42012a80dac40--foto-post-weltweit.netlify.app}"
