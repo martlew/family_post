@@ -4,34 +4,53 @@ set -euo pipefail
 # ============================================
 # FamilyPost backend one-shot deploy script
 # ============================================
-# Fill these values before first run.
+# Secrets are never hardcoded/defaulted here - they must already exist as
+# environment variables on the host (or be exported right before running
+# this script, e.g. `export LEMON_SQUEEZY_API_KEY='...'`). Using bash's
+# "${VAR:?message}" form makes the script abort immediately with a precise
+# per-variable error instead of silently falling back to a placeholder that
+# then gets baked into the container's .env (which is how the backend ended
+# up logging `variantId: 'REPLACE_WITH_LEMON_SQUEEZY_VARIANT_ID'` and
+# `password authentication failed for user "postgres"`).
+# Non-secret values below keep sensible defaults.
 API_DOMAIN="${API_DOMAIN:-api.foto-post-weltweit.de}"
 # Allow the production frontend plus the current temporary Netlify deploy URL.
 FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://foto-post-weltweit.de,https://www.foto-post-weltweit.de,https://6a566eee41c42012a80dac40--foto-post-weltweit.netlify.app}"
 API_BASE_URL="${API_BASE_URL:-https://api.foto-post-weltweit.de}"
 FRONTEND_BASE_URL="${FRONTEND_BASE_URL:-https://foto-post-weltweit.de}"
-MYPOSTCARD_API_KEY="${MYPOSTCARD_API_KEY:-REPLACE_WITH_MYPOSTCARD_API_KEY}"
-MYPOSTCARD_USERNAME="${MYPOSTCARD_USERNAME:-REPLACE_WITH_MYPOSTCARD_USERNAME}"
-MYPOSTCARD_PASSWORD="${MYPOSTCARD_PASSWORD:-REPLACE_WITH_MYPOSTCARD_PASSWORD}"
+MYPOSTCARD_API_KEY="${MYPOSTCARD_API_KEY:?ERROR: MYPOSTCARD_API_KEY is not set on the host. Export it before running this script.}"
+MYPOSTCARD_USERNAME="${MYPOSTCARD_USERNAME:?ERROR: MYPOSTCARD_USERNAME is not set on the host. Export it before running this script.}"
+MYPOSTCARD_PASSWORD="${MYPOSTCARD_PASSWORD:?ERROR: MYPOSTCARD_PASSWORD is not set on the host. Export it before running this script.}"
 MYPOSTCARD_CAMPAIGN_ID="${MYPOSTCARD_CAMPAIGN_ID:-}"
 MYPOSTCARD_API_BASE_URL="${MYPOSTCARD_API_BASE_URL:-https://www.mypostcard.com}"
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://foto-post-weltweit.de}"
-LEMON_SQUEEZY_API_KEY="${LEMON_SQUEEZY_API_KEY:-REPLACE_WITH_LEMON_SQUEEZY_API_KEY}"
-LEMON_SQUEEZY_STORE_ID="${LEMON_SQUEEZY_STORE_ID:-REPLACE_WITH_LEMON_SQUEEZY_STORE_ID}"
-LEMON_SQUEEZY_VARIANT_ID="${LEMON_SQUEEZY_VARIANT_ID:-REPLACE_WITH_LEMON_SQUEEZY_VARIANT_ID}"
+LEMON_SQUEEZY_API_KEY="${LEMON_SQUEEZY_API_KEY:?ERROR: LEMON_SQUEEZY_API_KEY is not set on the host. Export it before running this script.}"
+LEMON_SQUEEZY_STORE_ID="${LEMON_SQUEEZY_STORE_ID:?ERROR: LEMON_SQUEEZY_STORE_ID is not set on the host. Export it before running this script.}"
+LEMON_SQUEEZY_VARIANT_ID="${LEMON_SQUEEZY_VARIANT_ID:?ERROR: LEMON_SQUEEZY_VARIANT_ID is not set on the host. Export it before running this script.}"
+LEMON_SQUEEZY_VARIANT_ID_SINGLE="${LEMON_SQUEEZY_VARIANT_ID_SINGLE:-}"
+LEMON_SQUEEZY_VARIANT_ID_FAMILY_5="${LEMON_SQUEEZY_VARIANT_ID_FAMILY_5:-}"
+LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10="${LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10:-}"
 LEMON_SQUEEZY_TEST_MODE="${LEMON_SQUEEZY_TEST_MODE:-true}"
-SMTP_HOST="${SMTP_HOST:-REPLACE_WITH_SMTP_HOST}"
+SMTP_HOST="${SMTP_HOST:?ERROR: SMTP_HOST is not set on the host. Export it before running this script.}"
 SMTP_PORT="${SMTP_PORT:-587}"
-SMTP_USER="${SMTP_USER:-REPLACE_WITH_SMTP_USER}"
-SMTP_PASSWORD="${SMTP_PASSWORD:-REPLACE_WITH_SMTP_PASSWORD}"
+SMTP_USER="${SMTP_USER:?ERROR: SMTP_USER is not set on the host. Export it before running this script.}"
+SMTP_PASSWORD="${SMTP_PASSWORD:?ERROR: SMTP_PASSWORD is not set on the host. Export it before running this script.}"
 SMTP_FROM="${SMTP_FROM:-\"Family Post <no-reply@foto-post-weltweit.de>\"}"
 SMTP_SECURE="${SMTP_SECURE:-false}"
-JWT_SECRET="${JWT_SECRET:-REPLACE_WITH_STRONG_JWT_SECRET}"
+JWT_SECRET="${JWT_SECRET:?ERROR: JWT_SECRET is not set on the host. Export it before running this script.}"
 DB_HOST="${DB_HOST:-familypost_db}"
 DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${DB_NAME:-familypost}"
 DB_USER="${DB_USER:-postgres}"
-DB_PASSWORD="${DB_PASSWORD:-REPLACE_WITH_POSTGRES_PASSWORD}"
+# DATABASE_URL is accepted as an alias for DB_URL (a full Postgres connection
+# string), matching common hosting conventions. Either DB_URL/DATABASE_URL or
+# DB_PASSWORD must be set - both are exported as-is with no placeholder default.
+DB_URL="${DB_URL:-${DATABASE_URL:-}}"
+if [[ -z "${DB_URL}" ]]; then
+  DB_PASSWORD="${DB_PASSWORD:?ERROR: Neither DB_URL/DATABASE_URL nor DB_PASSWORD is set on the host. Export one of them before running this script.}"
+else
+  DB_PASSWORD="${DB_PASSWORD:-}"
+fi
 DB_SSL="${DB_SSL:-false}"
 PORT="${PORT:-3000}"
 CERT_FALLBACK_DOMAIN="${CERT_FALLBACK_DOMAIN:-}"
@@ -131,6 +150,9 @@ MYPOSTCARD_API_BASE_URL=${MYPOSTCARD_API_BASE_URL}
 LEMON_SQUEEZY_API_KEY=${LEMON_SQUEEZY_API_KEY}
 LEMON_SQUEEZY_STORE_ID=${LEMON_SQUEEZY_STORE_ID}
 LEMON_SQUEEZY_VARIANT_ID=${LEMON_SQUEEZY_VARIANT_ID}
+LEMON_SQUEEZY_VARIANT_ID_SINGLE=${LEMON_SQUEEZY_VARIANT_ID_SINGLE}
+LEMON_SQUEEZY_VARIANT_ID_FAMILY_5=${LEMON_SQUEEZY_VARIANT_ID_FAMILY_5}
+LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10=${LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10}
 LEMON_SQUEEZY_TEST_MODE=${LEMON_SQUEEZY_TEST_MODE}
 SMTP_HOST=${SMTP_HOST}
 SMTP_PORT=${SMTP_PORT}
@@ -145,6 +167,7 @@ DB_NAME=${DB_NAME}
 DB_USER=${DB_USER}
 DB_PASSWORD=${DB_PASSWORD}
 DB_SSL=${DB_SSL}
+DB_URL=${DB_URL}
 EOF
 
 # 2) Build and run Docker backend on localhost:3000

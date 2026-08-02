@@ -325,10 +325,26 @@ async function startServer() {
 
   const getPlanConfig = (planKey: string): PaymentPlanConfig => {
     const normalizedPlan = normalizePlanKey(planKey);
-    const baseVariantId = process.env.LEMON_SQUEEZY_VARIANT_ID?.trim() || process.env.VITE_LEMON_SQUEEZY_VARIANT_ID?.trim() || null;
-    const singleVariantId = process.env.LEMON_SQUEEZY_VARIANT_ID_SINGLE?.trim() || baseVariantId;
-    const familyVariantId = process.env.LEMON_SQUEEZY_VARIANT_ID_FAMILY_5?.trim() || baseVariantId;
-    const benefitVariantId = process.env.LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10?.trim() || baseVariantId;
+    const resolveVariant = (envName: string, fallback: string | null) => {
+      const raw = process.env[envName]?.trim();
+      if (!raw) {
+        return fallback;
+      }
+      if (isPlaceholderSecret(raw)) {
+        console.error(`[lemon] ${envName} is still set to a placeholder value ("${raw}"); falling back to LEMON_SQUEEZY_VARIANT_ID instead. Set the real ${envName} on the host/container.`);
+        return fallback;
+      }
+      return raw;
+    };
+
+    const rawBaseVariantId = process.env.LEMON_SQUEEZY_VARIANT_ID?.trim() || process.env.VITE_LEMON_SQUEEZY_VARIANT_ID?.trim() || null;
+    const baseVariantId = rawBaseVariantId && !isPlaceholderSecret(rawBaseVariantId) ? rawBaseVariantId : null;
+    if (rawBaseVariantId && isPlaceholderSecret(rawBaseVariantId)) {
+      console.error(`[lemon] LEMON_SQUEEZY_VARIANT_ID is still set to a placeholder value ("${rawBaseVariantId}"). Check the environment variable used to start the familypost-backend container.`);
+    }
+    const singleVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_SINGLE", baseVariantId);
+    const familyVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_FAMILY_5", baseVariantId);
+    const benefitVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10", baseVariantId);
 
     if (normalizedPlan === "family-5") {
       return { key: normalizedPlan, credits: 5, variantId: familyVariantId };
@@ -486,10 +502,19 @@ async function startServer() {
     const storeId = process.env.LEMON_SQUEEZY_STORE_ID?.trim() || process.env.VITE_LEMON_SQUEEZY_STORE_ID?.trim();
     const variantId = process.env.LEMON_SQUEEZY_VARIANT_ID?.trim() || process.env.VITE_LEMON_SQUEEZY_VARIANT_ID?.trim();
 
+    const resolved: Record<string, string | undefined> = { LEMON_SQUEEZY_API_KEY: apiKey, LEMON_SQUEEZY_STORE_ID: storeId, LEMON_SQUEEZY_VARIANT_ID: variantId };
+    for (const [name, value] of Object.entries(resolved)) {
+      if (!value) {
+        console.error(`[lemon] ${name} is not set on this host/container. Check the ${name} environment variable used to start the familypost-backend container.`);
+      } else if (isPlaceholderSecret(value)) {
+        console.error(`[lemon] ${name} is still set to a placeholder value ("${value}"). The real value never made it from the host into the container's environment.`);
+      }
+    }
+
     return {
-      apiKey,
-      storeId,
-      variantId,
+      apiKey: apiKey && !isPlaceholderSecret(apiKey) ? apiKey : undefined,
+      storeId: storeId && !isPlaceholderSecret(storeId) ? storeId : undefined,
+      variantId: variantId && !isPlaceholderSecret(variantId) ? variantId : undefined,
       testMode: String(process.env.LEMON_SQUEEZY_TEST_MODE || "false").toLowerCase() === "true",
     };
   };
