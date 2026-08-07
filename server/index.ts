@@ -55,6 +55,8 @@ async function startServer() {
   };
 
   type MyPostcardOrderRequest = {
+    api_key: string;
+    auth_token: string;
     product_code: string;
     message: string;
     image_url: string;
@@ -838,7 +840,13 @@ async function startServer() {
     const sanitizeRecipientText = (value: string) => value.replace(/&/g, "und").trim();
     const sanitizeCity = (value: string) => sanitizeRecipientText(value).replace(/[()]/g, "").trim();
 
+    const authToken = await getMyPostcardAuthToken(config);
+    const endpoint = `${config.baseUrl}/api/v1/place_order`;
+
+    // place_order requires api_key + auth_token in the body, not just the Bearer header (see MyPostcard Postman collection).
     const requestBody: MyPostcardOrderRequest = {
+      api_key: config.apiKey || "",
+      auth_token: authToken,
       product_code: "J9GCU",
       message: payload.message.replace(/\r\n/g, "\n").trim(),
       image_url: payload.imageUrl,
@@ -854,9 +862,6 @@ async function startServer() {
     };
 
     console.log("[mypostcard] Sending payload:", JSON.stringify(requestBody));
-
-    const authToken = await getMyPostcardAuthToken(config);
-    const endpoint = `${config.baseUrl}/api/v1/place_order`;
 
     let upstreamResponse: Response;
     let rawBody = "";
