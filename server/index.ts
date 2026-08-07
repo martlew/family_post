@@ -45,23 +45,21 @@ async function startServer() {
     imageUrl?: string;
   };
 
-  type MyPostcardRecipientInput = {
-    first_name?: string;
-    last_name: string;
-    street: string;
-    zip_code: string;
-    city: string;
-    country: string;
-  };
-
-  type MyPostcardOrderRequest = {
-    api_key: string;
-    auth_token: string;
-    product_code: string;
-    message: string;
-    image_url: string;
-    recipient: MyPostcardRecipientInput;
-    campaign_id?: string;
+  type MyPostcardJobData = {
+    job_details: {
+      fontName: string;
+      text: string;
+      textColor: string;
+      fontSize: string;
+    };
+    recipients: Array<{
+      recipientName: string;
+      addressLine1: string;
+      city: string;
+      zip: string;
+      country: string;
+      countryiso: string;
+    }>;
   };
 
   const sentPostcards = new Map<string, ForwardedPostcard & { id: string; createdAt: string; recipientCity: string }>();
@@ -843,42 +841,59 @@ async function startServer() {
     const authToken = await getMyPostcardAuthToken(config);
     const endpoint = `${config.baseUrl}/api/v1/place_order`;
 
-    // place_order requires api_key + auth_token in the body, not just the Bearer header (see MyPostcard Postman collection).
-    const requestBody: MyPostcardOrderRequest = {
-      api_key: config.apiKey || "",
-      auth_token: authToken,
-      product_code: "J9GCU",
-      message: payload.message.replace(/\r\n/g, "\n").trim(),
-      image_url: payload.imageUrl,
-      recipient: {
-        ...(firstName ? { first_name: sanitizeRecipientText(firstName) } : {}),
-        last_name: sanitizeRecipientText(lastName || payload.recipientName.trim()),
-        street: sanitizeRecipientText(payload.recipientAddress.trim()),
-        zip_code: resolvedLocation.postalCode,
-        city: sanitizeCity(resolvedLocation.city),
-        country: "Deutschland",
+    const recipientFullName = sanitizeRecipientText(
+      [firstName, lastName].filter(Boolean).join(" ").trim() || payload.recipientName.trim()
+    );
+
+    // job_data must be sent as a JSON *string* field, not individual fields (see MyPostcard Postman collection).
+    const jobData: MyPostcardJobData = {
+      job_details: {
+        fontName: "StoneHandwriting",
+        text: payload.message.replace(/\r\n/g, "\n").trim(),
+        textColor: "blue",
+        fontSize: "L",
       },
-      ...(config.campaignId ? { campaign_id: config.campaignId } : {}),
+      recipients: [
+        {
+          recipientName: recipientFullName,
+          addressLine1: sanitizeRecipientText(payload.recipientAddress.trim()),
+          city: sanitizeCity(resolvedLocation.city),
+          zip: resolvedLocation.postalCode,
+          country: "Deutschland",
+          countryiso: "DE",
+        },
+      ],
     };
 
-    console.log("[mypostcard] Sending payload:", JSON.stringify(requestBody));
-
-    // MyPostcard's Postman collection expects place_order as multipart/form-data,
-    // not JSON - nested recipient fields use PHP-style bracket notation.
-    const formData = new FormData();
-    formData.append("api_key", requestBody.api_key);
-    formData.append("auth_token", requestBody.auth_token);
-    formData.append("product_code", requestBody.product_code);
-    formData.append("message", requestBody.message);
-    formData.append("image_url", requestBody.image_url);
-    Object.entries(requestBody.recipient).forEach(([key, value]) => {
-      if (value !== undefined) {
-        formData.append(`recipient[${key}]`, String(value));
-      }
-    });
-    if (requestBody.campaign_id) {
-      formData.append("campaign_id", requestBody.campaign_id);
+    // MyPostcard's Postman collection expects the postcard image as a real uploaded
+    // file field ("photo"), not a URL string, plus a separate "image_type" field.
+    const imageResponse = await fetch(payload.imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to download postcard image for MyPostcard upload (${imageResponse.status})`);
     }
+    const imageContentType = imageResponse.headers.get("content-type") || "";
+    const imageType = imageContentType.includes("png") || payload.imageUrl.toLowerCase().endsWith(".png") ? "png" : "jpg";
+    const photoBlob = await imageResponse.blob();
+
+    const debugPayload = {
+      product_code: "J9GCU",
+      job_data: jobData,
+      image_type: imageType,
+      campaign_id: config.campaignId,
+    };
+
+    const formData = new FormData();
+    formData.append("api_key", config.apiKey || "");
+    formData.append("auth_token", authToken);
+    formData.append("product_code", "J9GCU");
+    formData.append("job_data", JSON.stringify(jobData));
+    formData.append("photo", photoBlob, `postcard.${imageType}`);
+    formData.append("image_type", imageType);
+    if (config.campaignId) {
+      formData.append("campaign_id", config.campaignId);
+    }
+
+    console.log("[mypostcard] Sending payload:", JSON.stringify(debugPayload));
 
     let upstreamResponse: Response;
     let rawBody = "";
@@ -897,7 +912,7 @@ async function startServer() {
         endpoint,
         error: error?.message || error,
         stack: error?.stack,
-        requestBody,
+        debugPayload,
       });
       throw error;
     }
@@ -917,7 +932,7 @@ async function startServer() {
         statusText: upstreamResponse.statusText,
         contentType: upstreamResponse.headers.get("content-type"),
         rawBody,
-        requestBody,
+        debugPayload,
       });
       const error = new Error(`MyPostcard submission failed with status ${upstreamResponse.status}`);
       (error as Error & { details?: unknown }).details = data;

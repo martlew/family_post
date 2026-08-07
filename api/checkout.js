@@ -37,7 +37,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { recipientName, recipientAddress, message, imageUrl } = req.body || {};
+  const { recipientName, recipientAddress, recipientPostalCode, recipientCity, message, imageUrl } = req.body || {};
   const apiKey = process.env.MYPOSTCARD_API_KEY;
   const username = process.env.MYPOSTCARD_USERNAME;
   const password = process.env.MYPOSTCARD_PASSWORD;
@@ -55,35 +55,43 @@ module.exports = async function handler(req, res) {
   try {
     const authToken = await getMyPostcardAuthToken(baseUrl, apiKey, username, password);
 
-    // place_order requires api_key + auth_token in the body, not just the Bearer header (see MyPostcard Postman collection).
-    const payload = {
-      api_key: apiKey,
-      auth_token: authToken,
-      product_code: MYPOSTCARD_PRODUCT_CODE,
-      message,
-      image_url: imageUrl,
-      recipient: {
-        last_name: recipientName,
-        street: recipientAddress
+    // job_data must be sent as a JSON *string* field, not individual fields (see MyPostcard Postman collection).
+    const jobData = {
+      job_details: {
+        fontName: 'StoneHandwriting',
+        text: message,
+        textColor: 'blue',
+        fontSize: 'L'
       },
-      ...(campaignId ? { campaign_id: campaignId } : {})
+      recipients: [{
+        recipientName,
+        addressLine1: recipientAddress,
+        city: recipientCity,
+        zip: recipientPostalCode,
+        country: 'Deutschland',
+        countryiso: 'DE'
+      }]
     };
 
-    // MyPostcard's Postman collection expects place_order as multipart/form-data,
-    // not JSON - nested recipient fields use PHP-style bracket notation.
+    // MyPostcard's Postman collection expects the postcard image as a real uploaded
+    // file field ("photo"), not a URL string, plus a separate "image_type" field.
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to download postcard image for MyPostcard upload (${imageResponse.status})`);
+    }
+    const imageContentType = imageResponse.headers.get('content-type') || '';
+    const imageType = imageContentType.includes('png') || imageUrl.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
+    const photoBlob = await imageResponse.blob();
+
     const formData = new FormData();
-    formData.append('api_key', payload.api_key);
-    formData.append('auth_token', payload.auth_token);
-    formData.append('product_code', payload.product_code);
-    formData.append('message', payload.message);
-    formData.append('image_url', payload.image_url);
-    Object.entries(payload.recipient).forEach(([key, value]) => {
-      if (value !== undefined) {
-        formData.append(`recipient[${key}]`, String(value));
-      }
-    });
-    if (payload.campaign_id) {
-      formData.append('campaign_id', payload.campaign_id);
+    formData.append('api_key', apiKey);
+    formData.append('auth_token', authToken);
+    formData.append('product_code', MYPOSTCARD_PRODUCT_CODE);
+    formData.append('job_data', JSON.stringify(jobData));
+    formData.append('photo', photoBlob, `postcard.${imageType}`);
+    formData.append('image_type', imageType);
+    if (campaignId) {
+      formData.append('campaign_id', campaignId);
     }
 
     const response = await fetch(`${baseUrl}/api/v1/place_order`, {
