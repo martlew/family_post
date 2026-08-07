@@ -863,6 +863,23 @@ async function startServer() {
 
     console.log("[mypostcard] Sending payload:", JSON.stringify(requestBody));
 
+    // MyPostcard's Postman collection expects place_order as multipart/form-data,
+    // not JSON - nested recipient fields use PHP-style bracket notation.
+    const formData = new FormData();
+    formData.append("api_key", requestBody.api_key);
+    formData.append("auth_token", requestBody.auth_token);
+    formData.append("product_code", requestBody.product_code);
+    formData.append("message", requestBody.message);
+    formData.append("image_url", requestBody.image_url);
+    Object.entries(requestBody.recipient).forEach(([key, value]) => {
+      if (value !== undefined) {
+        formData.append(`recipient[${key}]`, String(value));
+      }
+    });
+    if (requestBody.campaign_id) {
+      formData.append("campaign_id", requestBody.campaign_id);
+    }
+
     let upstreamResponse: Response;
     let rawBody = "";
 
@@ -870,10 +887,9 @@ async function startServer() {
       upstreamResponse = await fetch(endpoint, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify(requestBody),
+        body: formData,
       });
       rawBody = await upstreamResponse.text();
     } catch (error: any) {

@@ -69,13 +69,29 @@ module.exports = async function handler(req, res) {
       ...(campaignId ? { campaign_id: campaignId } : {})
     };
 
+    // MyPostcard's Postman collection expects place_order as multipart/form-data,
+    // not JSON - nested recipient fields use PHP-style bracket notation.
+    const formData = new FormData();
+    formData.append('api_key', payload.api_key);
+    formData.append('auth_token', payload.auth_token);
+    formData.append('product_code', payload.product_code);
+    formData.append('message', payload.message);
+    formData.append('image_url', payload.image_url);
+    Object.entries(payload.recipient).forEach(([key, value]) => {
+      if (value !== undefined) {
+        formData.append(`recipient[${key}]`, String(value));
+      }
+    });
+    if (payload.campaign_id) {
+      formData.append('campaign_id', payload.campaign_id);
+    }
+
     const response = await fetch(`${baseUrl}/api/v1/place_order`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
-      body: JSON.stringify(payload)
+      body: formData
     });
 
     const responseBody = await response.text();
