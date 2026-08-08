@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Camera, Mail, Plus, Settings, X, RotateCw, CreditCard } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { clearAuthSession, getAuthSession } from "@/lib/auth";
+import { buildApiUrl, clearAuthSession, getAuthSession } from "@/lib/auth";
 import BrandMark from "@/components/BrandMark";
 import Footer from "@/components/Footer";
 
@@ -24,19 +24,23 @@ export default function Dashboard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    if (!getAuthSession()) {
+    const session = getAuthSession();
+    if (!session) {
       navigate("/login");
       return;
     }
 
-    const saved = localStorage.getItem("family_postcards");
-    if (saved) {
-      try {
-        setPostcards(JSON.parse(saved));
-      } catch (e) {
+    void fetch(buildApiUrl(`/api/postcards?customerEmail=${encodeURIComponent(session.user.email)}`))
+      .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok || !Array.isArray(data?.postcards)) {
+          return;
+        }
+        setPostcards(data.postcards);
+      })
+      .catch((e) => {
         console.error("Fehler beim Laden der Postkarten:", e);
-      }
-    }
+      });
   }, [navigate]);
 
   // 3D Card Rotation Styles for Modal

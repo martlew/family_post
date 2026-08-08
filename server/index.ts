@@ -1285,8 +1285,83 @@ async function startServer() {
     return res.status(200).json({ ok: true });
   });
 
-  app.get("/api/postcards/:id", (req, res) => {
-    const postcard = sentPostcards.get(String(req.params.id || ""));
+  app.get("/api/postcards", async (req, res) => {
+    const customerEmail = normalizeEmail(String(req.query.customerEmail ?? ""));
+    if (!customerEmail) {
+      return res.status(400).json({ error: "customerEmail ist erforderlich." });
+    }
+
+    try {
+      await ensurePaymentDraftSchema();
+      const db = requirePaymentDraftsDb();
+      const result = await db.query<PaymentDraftRow>(
+        `
+          SELECT
+            draft_id,
+            status,
+            selected_plan,
+            credits_granted,
+            credits_recorded_at,
+            draft_data,
+            lemon_order_id,
+            forwarded_postcard_id,
+            created_at::text AS created_at,
+            updated_at::text AS updated_at,
+            paid_at::text AS paid_at,
+            forwarded_at::text AS forwarded_at
+          FROM payment_drafts
+          WHERE status = 'paid' AND draft_data->>'customerEmail' = $1
+          ORDER BY paid_at DESC NULLS LAST, updated_at DESC
+        `,
+        [customerEmail],
+      );
+
+      const postcards = result.rows.map((row) => {
+        const draft = mapPaymentDraftRow(row);
+        return {
+          id: draft.draftId,
+          imageUrl: draft.imageUrl,
+          message: draft.message,
+          recipientName: draft.recipientName,
+          recipientAddress: draft.recipientAddress,
+          recipientCity: `${draft.recipientPostalCode} ${draft.recipientCity}`.trim(),
+          createdAt: draft.paidAt || draft.createdAt,
+        };
+      });
+
+      return res.status(200).json({ success: true, postcards });
+    } catch (error: any) {
+      console.error("[postcards:list] failed", error?.message || error);
+      return res.status(500).json({ error: "Postkarten konnten nicht geladen werden." });
+    }
+  });
+
+  app.get("/api/postcards/:id", async (req, res) => {
+    const id = String(req.params.id || "");
+
+    try {
+      const draft = await getPaymentDraft(id);
+      if (draft && draft.status === "paid") {
+        return res.status(200).json({
+          success: true,
+          postcard: {
+            id: draft.draftId,
+            imageUrl: draft.imageUrl,
+            message: draft.message,
+            recipientName: draft.recipientName,
+            recipientAddress: draft.recipientAddress,
+            recipientCity: `${draft.recipientPostalCode} ${draft.recipientCity}`.trim(),
+            createdAt: draft.paidAt || draft.createdAt,
+          },
+        });
+      }
+    } catch (error: any) {
+      console.error("[postcards:get] draft lookup failed", error?.message || error);
+    }
+
+    // Fall back to the in-memory map for postcards forwarded before this
+    // endpoint started reading from the persisted payment_drafts table.
+    const postcard = sentPostcards.get(id);
     if (!postcard) {
       return res.status(404).json({ error: "Postkarte nicht gefunden." });
     }
