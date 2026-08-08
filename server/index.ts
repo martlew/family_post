@@ -819,6 +819,72 @@ async function startServer() {
     });
   };
 
+  const getPlanDisplayName = (planKey: PaymentPlanKey) => {
+    if (planKey === "family-5") return "Familienpaket (5 Postkarten)";
+    if (planKey === "benefit-10") return "Vorteilspaket (10 Postkarten)";
+    return "Einzelkarte";
+  };
+
+  const createOrderConfirmationEmailHtml = (draft: StoredPaymentDraft) => {
+    const planName = getPlanDisplayName(draft.selectedPlan);
+    return `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0E4B40">
+        <h2 style="margin:0 0 12px">Danke für deine Bestellung bei Family Post!</h2>
+        <p>Hallo${draft.customerName ? ` ${draft.customerName}` : ""},</p>
+        <p>wir haben deine Zahlung erhalten und deine Postkarte wird jetzt für den Versand vorbereitet.</p>
+        <table style="border-collapse:collapse;margin:16px 0">
+          <tr><td style="padding:4px 12px 4px 0;color:#4A635C">Paket</td><td>${planName}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#4A635C">Empfänger</td><td>${draft.recipientName}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#4A635C">Bestellnummer</td><td>${draft.draftId}</td></tr>
+        </table>
+        <p style="font-size:12px;color:#4A635C">Diese E-Mail ist deine Bestellbestätigung von Family Post. Die Zahlungsquittung erhältst du separat von unserem Zahlungsabwickler Lemon Squeezy.</p>
+      </div>
+    `;
+  };
+
+  const sendOrderConfirmationMail = async (draft: StoredPaymentDraft, requestId: string) => {
+    const recipientEmail = draft.customerEmail?.trim();
+    if (!recipientEmail) {
+      console.log(`[payments:${requestId}] skipping order confirmation mail, no customerEmail on draft`, { draftId: draft.draftId });
+      return;
+    }
+
+    const smtp = getSmtpConfig();
+    const transporter = nodemailer.createTransport({
+      host: smtp.host,
+      port: smtp.port,
+      secure: smtp.secure,
+      requireTLS: !smtp.secure,
+      authMethod: "LOGIN",
+      auth: {
+        user: smtp.user,
+        pass: smtp.password,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+
+    const sendResult = await transporter.sendMail({
+      from: smtp.from,
+      to: recipientEmail,
+      subject: "Deine Family Post Bestellung ist bestätigt",
+      text: `Danke für deine Bestellung bei Family Post! Paket: ${getPlanDisplayName(draft.selectedPlan)}. Bestellnummer: ${draft.draftId}.`,
+      html: createOrderConfirmationEmailHtml(draft),
+      replyTo: smtp.user,
+      headers: {
+        "X-Request-ID": requestId,
+      },
+    });
+    console.log(`[payments:${requestId}] order confirmation mail sent`, {
+      recipientEmail,
+      response: sendResult.response,
+      accepted: sendResult.accepted,
+      rejected: sendResult.rejected,
+      messageId: sendResult.messageId,
+    });
+  };
+
   const forwardToMyPostcard = async (payload: ForwardedPostcard) => {
     const config = getMyPostcardConfig();
 
@@ -1575,6 +1641,20 @@ async function startServer() {
           orderKey,
           error: forwardError?.message || forwardError,
           stack: forwardError?.stack,
+        });
+      }
+
+      // The customer already paid at this point, so a confirmation mail
+      // failure must not block the success redirect - only log it.
+      try {
+        await sendOrderConfirmationMail(updatedDraft, `${draftId}-${orderId}`);
+      } catch (mailError: any) {
+        console.error("[payments:complete] order confirmation mail failed", {
+          draftId,
+          orderId,
+          orderKey,
+          error: mailError?.message || mailError,
+          stack: mailError?.stack,
         });
       }
 

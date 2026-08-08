@@ -31,12 +31,12 @@ Single source of truth for the backend on DigitalOcean.
 | `DB_PASSWORD` | ja fuer Checkout | Datenbank-Passwort | Muss exakt dem `POSTGRES_PASSWORD` entsprechen, mit dem der `familypost_db`-Container erstellt wurde (kein docker-compose.yml im Repo, Container wird manuell auf dem Droplet betrieben). Weicht es ab, schlaegt `create-checkout` mit `password authentication failed for user "postgres"` fehl. `deploy.sh`/`fix_env_and_rebuild.sh` brechen nur bei diesem und `LEMON_SQUEEZY_API_KEY`/`DB_URL` hart ab, wenn noch ein `REPLACE_WITH_...`-Platzhalter steht - alle anderen Variablen bekommen einen Dummy-Default plus Warnung. Zum Nachtragen echter Werte ohne `nano`: `./setup_env.sh`. |
 | `DB_SSL` | nein | TLS fuer die DB-Verbindung | `true` oder `false`, lokal meist `false` |
 | `DB_URL` | alternativ | Vollstaendige DB-Verbindungszeichenkette | Kann die einzelnen `DB_*`-Werte ersetzen; Alias `DATABASE_URL` wird von `deploy.sh` ebenfalls akzeptiert |
-| `SMTP_HOST` | ja fuer Reset-Mail | SMTP-Server fuer Passwort-Reset-E-Mails | Hostname des Mailservers |
-| `SMTP_PORT` | ja fuer Reset-Mail | SMTP-Port | Typisch `587` oder `465` |
-| `SMTP_USER` | ja fuer Reset-Mail | SMTP-Benutzer | Mailbox oder SMTP-Login |
-| `SMTP_PASSWORD` | ja fuer Reset-Mail | SMTP-Passwort | Geheim halten |
-| `SMTP_FROM` | ja fuer Reset-Mail | Absenderadresse im Mail-From-Feld | z. B. `Family Post <no-reply@...>` |
-| `SMTP_SECURE` | ja fuer Reset-Mail | TLS fuer SMTP-Verbindung | `true` fuer 465, sonst meist `false` |
+| `SMTP_HOST` | ja fuer Reset-Mail & Bestellbestaetigung | SMTP-Server fuer Passwort-Reset- und Bestellbestaetigungs-E-Mails | Hostname des Mailservers |
+| `SMTP_PORT` | ja fuer Reset-Mail & Bestellbestaetigung | SMTP-Port | Typisch `587` oder `465` |
+| `SMTP_USER` | ja fuer Reset-Mail & Bestellbestaetigung | SMTP-Benutzer | Mailbox oder SMTP-Login |
+| `SMTP_PASSWORD` | ja fuer Reset-Mail & Bestellbestaetigung | SMTP-Passwort | Geheim halten |
+| `SMTP_FROM` | ja fuer Reset-Mail & Bestellbestaetigung | Absenderadresse im Mail-From-Feld | z. B. `Family Post <no-reply@...>` |
+| `SMTP_SECURE` | ja fuer Reset-Mail & Bestellbestaetigung | TLS fuer SMTP-Verbindung | `true` fuer 465, sonst meist `false` |
 
 ## Optionale Vite-Client-Varianten
 
