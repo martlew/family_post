@@ -10,17 +10,17 @@ import { motion, useReducedMotion } from "framer-motion";
 const steps = [
   {
     icon: Camera,
-    title: "Teile einen Moment",
+    title: "Foto hochladen",
     description: "Wähle deinen schönsten Moment aus dem Urlaub oder aus dem Alltag aus.",
   },
   {
     icon: Pencil,
-    title: "Sag etwas Persönliches",
+    title: "Karte gestalten",
     description: "Füge ein paar persönliche Worte hinzu, die wirklich ankommen.",
   },
   {
     icon: Send,
-    title: "Wir bringen Freude in den Briefkasten",
+    title: "Wir drucken und verschicken sie – weltweit",
     description: "Druck, Versand und Zustellung laufen im Hintergrund für dich.",
   },
 ];
@@ -41,6 +41,16 @@ export default function Home() {
   return (
     <div className="min-h-dvh bg-[#F7F3EA] text-[#0E4B40]">
       <header className="sticky top-0 z-50 border-b border-[#D9E4DD] bg-white/85 backdrop-blur-md">
+        <div className="bg-[#FFF9EF] border-b border-[#C99A3E]/15 py-2 text-center text-xs text-[#0E4B40]">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 flex items-center justify-center gap-2 flex-wrap">
+            <span className="inline-flex items-center rounded-full bg-[#C99A3E]/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#C99A3E] border border-[#C99A3E]/20">
+              BETA
+            </span>
+            <span className="font-medium tracking-wide">
+              ✨ Beta-Version – Wir optimieren kontinuierlich dein Kartenerlebnis
+            </span>
+          </div>
+        </div>
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div className="flex items-center px-1 sm:px-0 sm:gap-5">
             <BrandMark />
@@ -91,7 +101,7 @@ export default function Home() {
               <h1
                 className="mx-auto max-w-3xl text-left text-[2.4rem] font-black leading-[1.05] tracking-tight text-[#0E4B40] sm:text-5xl md:mx-0 md:max-w-none md:text-6xl md:leading-[1.02]"
               >
-                Echte Erinnerungen verdienen einen <span className="text-[#C99A3E]">echten Platz im Leben.</span>
+                Ein Foto wird zur echten Postkarte <span className="text-[#C99A3E]">– gedruckt und weltweit verschickt.</span>
               </h1>
               <div className="mt-5 flex justify-start md:hidden">
                 <div className="relative w-full max-w-[19rem] overflow-hidden rounded-[18px] border border-[#C99A3E]/28 bg-white p-2 shadow-[0_20px_45px_rgba(14,75,64,0.18)]" style={{ transform: "rotate(-4deg)" }}>
@@ -182,7 +192,7 @@ export default function Home() {
 
         <section className="px-4 py-12 md:py-16">
           <div className="mx-auto max-w-6xl">
-            <h2 className="text-3xl font-black tracking-tight text-[#0E4B40] md:text-5xl">Die Lösung in 3 Schritten</h2>
+            <h2 className="text-3xl font-black tracking-tight text-[#0E4B40] md:text-5xl">Wie es funktioniert</h2>
             <div className="mt-8 grid gap-5 md:grid-cols-3">
               {steps.map(({ icon: Icon, title, description }) => (
                 <article key={title} className="rounded-[24px] border border-[#D9E4DD] bg-white p-6 shadow-[0_18px_50px_rgba(14,75,64,0.08)]">
@@ -215,7 +225,7 @@ export default function Home() {
         <section className="px-4 pb-10 md:pb-14">
           <div className="mx-auto max-w-6xl">
             <div className="text-center">
-              <h2 className="text-3xl font-black tracking-tight text-[#0E4B40] md:text-5xl">Preise, die Erinnerungen fair machen</h2>
+              <h2 className="text-3xl font-black tracking-tight text-[#0E4B40] md:text-5xl">Pakete und Preise</h2>
               <p className="mt-3 text-base text-[#4A635C] md:text-lg">All-inclusive mit Premium-Druck, echtem Porto und weltweitem Versand.</p>
             </div>
             <div className="mt-8 grid gap-5 md:grid-cols-3">
@@ -231,7 +241,7 @@ export default function Home() {
               <Link href="/editor" onClick={() => handlePlanSelection("family-5")}>
                 <article className="h-full cursor-pointer rounded-[24px] border border-[#C99A3E]/35 bg-gradient-to-b from-[#E4F1E9] to-white p-6 shadow-[0_22px_60px_rgba(14,75,64,0.10)] transition-all hover:-translate-y-0.5 hover:border-[#C99A3E]/55 hover:shadow-[0_26px_62px_rgba(14,75,64,0.14)]">
                   <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#0E4B40]">Family-Paket (5er)</p>
-                  <p className="mt-4 text-4xl font-black text-[#0E4B40]">22,99 €</p>
+                  <p className="mt-4 text-4xl font-black text-[#0E4B40]">21,99 €</p>
                   <p className="mt-2 text-sm text-[#4A635C]">Für 5 Postkarten, kein Ablaufdatum, gemeinsam in der Familie nutzbar.</p>
                   <div className="mt-5 inline-flex rounded-full bg-[#0E4B40] px-4 py-2 text-sm font-semibold text-white">Jetzt Erinnerung versenden</div>
                 </article>
