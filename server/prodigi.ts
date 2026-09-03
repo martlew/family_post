@@ -8,6 +8,7 @@ export type ProdigiOrderPayload = {
   country?: string;
   customerEmail?: string;
   imageUrl: string;
+  /** @deprecated our postcard SKUs only support one "default" asset; Prodigi renders the back itself. */
   backUrl?: string;
   message?: string;
   sku?: string;
@@ -177,24 +178,22 @@ export async function createProdigiOrder(payload: ProdigiOrderPayload): Promise<
   const merchantReference = `familypost-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
   const sku = payload.sku || config.sku || DEFAULT_PRODIGI_SKU;
 
+  // Our postcard SKUs only expose a single "default" print area (the front
+  // image); Prodigi prints the address/postage side itself from `recipient`.
   const assets: Array<{ printArea: string; url: string }> = [
-    { printArea: "front", url: imageUrl },
+    { printArea: "default", url: imageUrl },
   ];
-
-  if (payload.backUrl && /^https?:\/\//i.test(payload.backUrl)) {
-    assets.push({ printArea: "back", url: payload.backUrl });
-  }
 
   const requestBody = {
     merchantReference,
-    shippingMethod: "Standard",
+    shippingMethod: "Budget",
     recipient: {
       name: (payload.recipientName || "").trim(),
       ...(payload.customerEmail?.trim() ? { email: payload.customerEmail.trim() } : {}),
       address: {
         line1: payload.recipientAddress.trim(),
-        town: resolvedLocation.city,
-        postcode: resolvedLocation.postalCode,
+        townOrCity: resolvedLocation.city,
+        postalOrZipCode: resolvedLocation.postalCode,
         countryCode,
       },
     },
