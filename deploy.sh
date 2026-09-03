@@ -199,12 +199,17 @@ docker build --no-cache --pull -f "server/Dockerfile" -t "${IMAGE_NAME}" .
 
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 
+# Uploaded photos (persisted for Prodigi's https:// image URL requirement) live outside the
+# image so they survive container recreation/redeploys, same pattern as the .env bind mount.
+mkdir -p "${APP_DIR}/uploads"
+
 docker run -d \
   --name "${CONTAINER_NAME}" \
   --restart unless-stopped \
   --network "${DOCKER_NETWORK}" \
   --env-file "${APP_DIR}/${ENV_REL_PATH}" \
   -v "${APP_DIR}/${ENV_REL_PATH}:/app/.env:ro" \
+  -v "${APP_DIR}/uploads:/app/uploads" \
   -p "${DOCKER_PORT_MAPPING}" \
   "${IMAGE_NAME}"
 

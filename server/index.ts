@@ -16,9 +16,42 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 dotenv.config({ path: path.resolve(process.cwd(), "server/.env"), override: false });
 
+// Persistent (bind-mounted in production, see deploy.sh) storage for uploaded photos so Prodigi
+// gets a real https:// URL instead of a data:-URI, which its API rejects outright.
+const UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const DATA_URI_IMAGE_REGEX = /^data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]+)$/i;
+
+function persistDataUriImage(dataUri: string): string {
+  const match = dataUri.match(DATA_URI_IMAGE_REGEX);
+  if (!match) {
+    throw new Error("Nicht unterstütztes Bildformat (nur PNG/JPEG/WEBP als data:-URI werden akzeptiert).");
+  }
+  const subtype = match[1].toLowerCase();
+  const extension = subtype === "jpeg" ? "jpg" : subtype;
+  const buffer = Buffer.from(match[2], "base64");
+  const filename = `${crypto.randomUUID()}.${extension}`;
+  fs.writeFileSync(path.join(UPLOADS_DIR, filename), buffer);
+  return filename;
+}
+
+// Prodigi requires a publicly reachable https:// image URL; uploaded photos arrive as data:-URIs
+// and must be persisted to disk first. Already-hosted URLs (e.g. the template images) pass through.
+function resolveImageUrlForFulfillment(imageUrl: string, apiBaseUrl: string): string {
+  const trimmed = (imageUrl || "").trim();
+  if (trimmed.toLowerCase().startsWith("data:")) {
+    const filename = persistDataUriImage(trimmed);
+    return `${apiBaseUrl.replace(/\/$/, "")}/uploads/${filename}`;
+  }
+  return trimmed;
+}
+
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  app.use("/uploads", express.static(UPLOADS_DIR, { maxAge: "365d", immutable: true }));
 
   type PostcardDraft = {
     imageUrl: string;
@@ -698,13 +731,14 @@ async function startServer() {
           ? `${apiBaseUrl}/api/postcards/${encodeURIComponent(draftId)}/back.svg`
           : undefined;
 
+        const resolvedImageUrl = resolveImageUrlForFulfillment(updatedDraft.imageUrl, apiBaseUrl);
         const prodigiOrder = await createProdigiOrder({
           recipientName: updatedDraft.recipientName,
           recipientAddress: updatedDraft.recipientAddress,
           recipientPostalCode: updatedDraft.recipientPostalCode,
           recipientCity: updatedDraft.recipientCity,
           customerEmail: updatedDraft.customerEmail,
-          imageUrl: updatedDraft.imageUrl,
+          imageUrl: resolvedImageUrl,
           message: updatedDraft.message,
           backUrl,
         });
@@ -1177,6 +1211,7 @@ async function startServer() {
     }
 
     try {
+      const resolvedImageUrl = resolveImageUrlForFulfillment(imageUrl, getApiBaseUrl());
       const prodigi = await createProdigiOrder({
         recipientName,
         recipientAddress,
@@ -1184,7 +1219,7 @@ async function startServer() {
         recipientCity,
         country,
         customerEmail,
-        imageUrl,
+        imageUrl: resolvedImageUrl,
         message,
       });
 
