@@ -680,6 +680,11 @@ async function startServer() {
       tls: {
         rejectUnauthorized: false,
       },
+      // Keep well under Nginx's proxy_read_timeout - this is called fire-and-forget
+      // from fulfillPaidDraft, but a hung mail server must not dangle indefinitely.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 10_000,
     });
 
     const sendResult = await transporter.sendMail({
@@ -702,10 +707,75 @@ async function startServer() {
     });
   };
 
+  // Runs the slow, unreliable-network parts of fulfillment (Prodigi order + SMTP)
+  // fire-and-forget, after the payment has already been applied and the HTTP
+  // response has been sent. Neither call is allowed to block the checkout
+  // request - a stalled print API or mail server must never cause a Nginx
+  // proxy_read_timeout (504) on the customer-facing request.
+  const runBackgroundFulfillment = (updatedDraft: StoredPaymentDraft, requestId: string) => {
+    void (async () => {
+      const draftId = updatedDraft.draftId;
+
+      if (!updatedDraft.fulfillmentOrderId) {
+        // The payment was already committed as "paid" by applySuccessfulPayment
+        // before we ever call the print partner. A Prodigi outage/bad-credentials
+        // failure must not undo that - it's caught separately here and only logged.
+        try {
+          const apiBaseUrl = getApiBaseUrl();
+          const backUrl = apiBaseUrl.startsWith("https://")
+            ? `${apiBaseUrl}/api/postcards/${encodeURIComponent(draftId)}/back.svg`
+            : undefined;
+
+          const resolvedImageUrl = resolveImageUrlForFulfillment(updatedDraft.imageUrl, apiBaseUrl);
+          const prodigiOrder = await createProdigiOrder({
+            recipientName: updatedDraft.recipientName,
+            recipientAddress: updatedDraft.recipientAddress,
+            recipientPostalCode: updatedDraft.recipientPostalCode,
+            recipientCity: updatedDraft.recipientCity,
+            customerEmail: updatedDraft.customerEmail,
+            imageUrl: resolvedImageUrl,
+            message: updatedDraft.message,
+            backUrl,
+          });
+          await markPaymentDraftPrintOrder(draftId, prodigiOrder.id, prodigiOrder.status);
+          updatedDraft.fulfillmentOrderId = prodigiOrder.id;
+          updatedDraft.fulfillmentStatus = prodigiOrder.status;
+          console.log(`[payments:${requestId}] Prodigi order created`, { draftId, prodigiOrderId: prodigiOrder.id, prodigiStatus: prodigiOrder.status });
+        } catch (prodigiError: any) {
+          console.error(`[payments:${requestId}] Prodigi order creation failed after payment was already applied`, {
+            draftId,
+            error: prodigiError?.message || prodigiError,
+            stack: prodigiError?.stack,
+          });
+        }
+      }
+
+      // The customer already paid at this point, so a confirmation mail failure
+      // must not block fulfillment - only log it.
+      try {
+        await sendOrderConfirmationMail(updatedDraft, requestId);
+      } catch (mailError: any) {
+        console.error(`[payments:${requestId}] order confirmation mail failed`, {
+          draftId,
+          error: mailError?.message || mailError,
+          stack: mailError?.stack,
+        });
+      }
+    })().catch((error: any) => {
+      console.error(`[payments:${requestId}] background fulfillment crashed unexpectedly`, {
+        draftId: updatedDraft.draftId,
+        error: error?.message || error,
+        stack: error?.stack,
+      });
+    });
+  };
+
   // Shared fulfillment logic invoked both by the Stripe webhook (source of truth)
   // and, as a fallback, by the success_url redirect handler below - idempotent via
   // applySuccessfulPayment's credits_recorded_at/fulfillmentOrderId guards, so it's safe
-  // to call twice for the same draft.
+  // to call twice for the same draft. Returns as soon as the payment itself is
+  // recorded; Prodigi order creation and the confirmation mail run in the background
+  // (see runBackgroundFulfillment) so this never blocks the caller's HTTP response.
   const fulfillPaidDraft = async (draftId: string, stripeSessionId: string, requestId: string) => {
     const updatedDraft = await applySuccessfulPayment(draftId, stripeSessionId);
     if (!updatedDraft) {
@@ -720,52 +790,7 @@ async function startServer() {
       creditsRecordedAt: updatedDraft.creditsRecordedAt,
     });
 
-    if (!updatedDraft.fulfillmentOrderId) {
-      // The payment was already committed as "paid" by applySuccessfulPayment
-      // above (its own DB transaction) before we ever call the print partner.
-      // A Prodigi outage/bad-credentials failure must not undo that - it's
-      // caught separately here and only logged.
-      try {
-        const apiBaseUrl = getApiBaseUrl();
-        const backUrl = apiBaseUrl.startsWith("https://")
-          ? `${apiBaseUrl}/api/postcards/${encodeURIComponent(draftId)}/back.svg`
-          : undefined;
-
-        const resolvedImageUrl = resolveImageUrlForFulfillment(updatedDraft.imageUrl, apiBaseUrl);
-        const prodigiOrder = await createProdigiOrder({
-          recipientName: updatedDraft.recipientName,
-          recipientAddress: updatedDraft.recipientAddress,
-          recipientPostalCode: updatedDraft.recipientPostalCode,
-          recipientCity: updatedDraft.recipientCity,
-          customerEmail: updatedDraft.customerEmail,
-          imageUrl: resolvedImageUrl,
-          message: updatedDraft.message,
-          backUrl,
-        });
-        await markPaymentDraftPrintOrder(draftId, prodigiOrder.id, prodigiOrder.status);
-        updatedDraft.fulfillmentOrderId = prodigiOrder.id;
-        updatedDraft.fulfillmentStatus = prodigiOrder.status;
-        console.log(`[payments:${requestId}] Prodigi order created`, { draftId, prodigiOrderId: prodigiOrder.id, prodigiStatus: prodigiOrder.status });
-      } catch (prodigiError: any) {
-        console.error(`[payments:${requestId}] Prodigi order creation failed after payment was already applied`, {
-          draftId,
-          error: prodigiError?.message || prodigiError,
-          stack: prodigiError?.stack,
-        });
-      }
-    }
-
-    // The customer already paid at this point, so a confirmation mail failure
-    // must not block fulfillment - only log it.
-    try {
-      await sendOrderConfirmationMail(updatedDraft, requestId);
-    } catch (mailError: any) {
-      console.error(`[payments:${requestId}] order confirmation mail failed`, {
-        draftId,
-        error: mailError?.message || mailError,
-        stack: mailError?.stack,
-      });
-    }
+    runBackgroundFulfillment(updatedDraft, requestId);
 
     return updatedDraft;
   };
