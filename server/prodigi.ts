@@ -19,8 +19,9 @@ export type ProdigiOrderResult = {
   raw: unknown;
 };
 
-export const DEFAULT_PRODIGI_SKU = "GLOBAL-POST-A6";
-export const FALLBACK_PRODIGI_SKU = "POST-A6";
+// Prodigi has no literal "A6" SKU; GLOBAL-POST-GLOS-6X4 (152x102mm, no envelope) is the closest real match.
+export const DEFAULT_PRODIGI_SKU = "GLOBAL-POST-GLOS-6X4";
+export const FALLBACK_PRODIGI_SKU = "GLOBAL-POST-MOH-6X4-BLA";
 
 export function isPlaceholderSecret(value: string): boolean {
   return /^(REPLACE_WITH_|DUMMY_NOT_CONFIGURED)/i.test(value);
