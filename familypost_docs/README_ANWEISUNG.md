@@ -9,8 +9,8 @@ Gueltige Kerndokumente:
 - `ANWEISUNG_GESAMT_STRUKTUR_UND_CONTENT.md`
 
 Technischer Stand:
-- Postkarten-Abwicklung: EchtPost-API.
-- Zahlungsabwicklung: Lemon Squeezy als Merchant of Record.
+- Postkarten-Abwicklung: Prodigi Print-API (v4.0), Zuordnung per Order-Referenz-ID.
+- Zahlungsabwicklung: Stripe (Checkout & Webhooks).
 - Hosting und Betrieb: Manitu-Server und angebundene Produktionsdomains.
 
 Veraltete Referenzen auf fruehere Druck- oder Hosting-Anbieter duerfen in diesen Dokumenten nicht mehr verwendet werden.

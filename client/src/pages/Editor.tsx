@@ -171,17 +171,18 @@ export default function Editor() {
         throw new Error(payload.error || "Checkout konnte nicht geöffnet werden.");
       }
 
+      if (payload.redirectUrl) {
+        toast.success("Prodigi-Bestellung erstellt (Dev-Modus, kein echtes Stripe-Checkout).");
+        window.location.assign(payload.redirectUrl);
+        return;
+      }
+
       if (!payload.checkoutUrl) {
         throw new Error("Checkout-URL fehlt.");
       }
 
-      toast.success("Bitte im Lemon Squeezy Checkout bezahlen.");
-      const checkoutUrl = new URL(payload.checkoutUrl, window.location.href);
-      const discountCode = promoCode.trim();
-      if (discountCode) {
-        checkoutUrl.searchParams.set("discount_code", discountCode);
-      }
-      window.location.assign(checkoutUrl.toString());
+      toast.success("Bitte im Stripe Checkout bezahlen.");
+      window.location.assign(payload.checkoutUrl);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Übertragung fehlgeschlagen. Bitte versuche es erneut.");
     } finally {
@@ -538,7 +539,7 @@ export default function Editor() {
                       className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-700/30 focus:border-teal-700/40 transition-all text-sm"
                     />
                     <p className="mt-1 text-xs text-slate-500">
-                      Der Code wird im Lemon Squeezy Checkout geprüft.
+                      Der Code wird im Stripe Checkout geprüft.
                     </p>
                   </div>
                 </div>

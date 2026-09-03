@@ -60,7 +60,7 @@
   - Neutral-warm, clean key light auf Haende und Display.
 - On-Screen Text:
   - Text: "Foto waehlen. Text dazu. Abschicken."
-  - Badge rechts unten: "ab 3,99 EUR" in #ffffff auf #0f766e
+  - Badge rechts unten: "ab 4,99 EUR" in #ffffff auf #0f766e
   - UI-Rahmenlinien in #e5e7eb
 - Audio/Sprechertext:
   - SFX: Sanfter Tap-Click, kurzer Confirm-Chime.
@@ -88,9 +88,9 @@
 - Lighting:
   - Soft studio top light, reflektionsarm, sehr sauber.
 - On-Screen Text:
-  - Card 1: "Einzelticket 3,99 EUR"
-  - Card 2: "Family-Paket 18,99 EUR (5 Karten)"
-  - Card 3: "Vorteils-Paket 34,99 EUR (10 Karten)"
+  - Card 1: "Einzelticket 4,99 EUR"
+  - Card 2: "Family-Paket 21,99 EUR (5 Karten)"
+  - Card 3: "Vorteils-Paket 39,99 EUR (10 Karten)"
   - Zusatzzone: "All-inclusive: Premium-Versand + 300g Druck + echtes Porto"
   - Farben: Flaechen #ffffff, Linien #e5e7eb, Preis in #0f766e, Text #1f2937
 - Audio/Sprechertext:
@@ -136,4 +136,4 @@ Schick heute den ersten Moment. FamilyPost - Erinnerungen, die bleiben."
 ## 6) Varianten fuer A/B-Test
 - Variante A (Emotion-First): Start mit Oma-Shot statt Smartphone-Scroll.
 - Variante B (Proof-First): Start mit Briefkasten-Moment und danach Problem.
-- Variante C (Price-Trust-First): Start mit "ab 3,99 EUR all-inclusive" + sofort emotionaler Payoff.
+- Variante C (Price-Trust-First): Start mit "ab 4,99 EUR all-inclusive" + sofort emotionaler Payoff.

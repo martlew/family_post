@@ -14,7 +14,7 @@ Die gueltigen Dokumente liegen im Ordner `familypost_docs/`:
 
 Die Dokumentation muss den aktuellen technischen Stand widerspiegeln:
 
-- EchtPost ist der operative Dienst fuer die Postkarten-Abwicklung.
+- Prodigi (Print-API v4.0) ist der operative Dienst fuer die Postkarten-Abwicklung, Zuordnung per Order-Referenz-ID.
 - Lemon Squeezy ist der Merchant of Record fuer Zahlung, Checkout und Rechnungslogik.
 - Der Live-Betrieb erfolgt ueber den Manitu-Server und die angebundenen Produktionsdomains.
 - Veraltete Begriffe frueherer Druck- oder Hosting-Anbieter sind aus den gueltigen Docs zu entfernen.
@@ -47,4 +47,4 @@ Sie duerfen nicht geloescht, verschoben oder bereinigt werden, bis ihre Rolle ex
 ## 4. Strategische Sperre
 
 Zum aktuellen Zeitpunkt wird kein Automatisierungs-Skript fuer die Ordnerverwaltung gebaut.
-Diese Sperre gilt, bis das Lemon-Squeezy- und EchtPost-Zahlungssystem im Live-Betrieb vollstaendig validiert ist.
+Diese Sperre gilt, bis das Stripe- und Prodigi-System im Live-Betrieb vollstaendig validiert ist.

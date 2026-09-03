@@ -37,22 +37,13 @@ API_DOMAIN="${API_DOMAIN:-api.foto-post-weltweit.de}"
 FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://foto-post-weltweit.de,https://www.foto-post-weltweit.de,https://6a566eee41c42012a80dac40--foto-post-weltweit.netlify.app}"
 API_BASE_URL="${API_BASE_URL:-https://api.foto-post-weltweit.de}"
 FRONTEND_BASE_URL="${FRONTEND_BASE_URL:-https://foto-post-weltweit.de}"
-# MyPostcard credentials default to the real production values (rather than
-# a DUMMY_NOT_CONFIGURED placeholder) so a redeploy can never regress them -
-# only an explicit `export MYPOSTCARD_...=...` overrides these.
-MYPOSTCARD_API_KEY="${MYPOSTCARD_API_KEY:-8bd895e8c0888ea48f0014c}"
-MYPOSTCARD_USERNAME="${MYPOSTCARD_USERNAME:-mlewandowski}"
-MYPOSTCARD_PASSWORD="${MYPOSTCARD_PASSWORD:-m\$f430@hjf4G0hwRf4}"
-MYPOSTCARD_CAMPAIGN_ID="${MYPOSTCARD_CAMPAIGN_ID:-348}"
-MYPOSTCARD_API_BASE_URL="${MYPOSTCARD_API_BASE_URL:-https://www.mypostcard.com}"
+# Prodigi is the sole print-fulfillment provider; default to a dummy value
+# (warned about below) rather than blocking the deploy if not yet exported.
+PRODIGI_API_KEY="${PRODIGI_API_KEY:-DUMMY_NOT_CONFIGURED}"
+PRODIGI_ENV="${PRODIGI_ENV:-sandbox}"
+STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-}"
+STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET:-}"
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://foto-post-weltweit.de}"
-LEMON_SQUEEZY_API_KEY="${LEMON_SQUEEZY_API_KEY:?ERROR: LEMON_SQUEEZY_API_KEY is not set on the host. Export it before running this script.}"
-LEMON_SQUEEZY_STORE_ID="${LEMON_SQUEEZY_STORE_ID:-429090}"
-LEMON_SQUEEZY_VARIANT_ID="${LEMON_SQUEEZY_VARIANT_ID:-}"
-LEMON_SQUEEZY_VARIANT_ID_SINGLE="${LEMON_SQUEEZY_VARIANT_ID_SINGLE:-}"
-LEMON_SQUEEZY_VARIANT_ID_FAMILY_5="${LEMON_SQUEEZY_VARIANT_ID_FAMILY_5:-}"
-LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10="${LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10:-}"
-LEMON_SQUEEZY_TEST_MODE="${LEMON_SQUEEZY_TEST_MODE:-true}"
 SMTP_HOST="${SMTP_HOST:-smtp.invalid}"
 SMTP_PORT="${SMTP_PORT:-587}"
 SMTP_USER="${SMTP_USER:-DUMMY_NOT_CONFIGURED}"
@@ -146,7 +137,7 @@ else
   # --exclude='.env': SCRIPT_DIR is a git checkout and .env is gitignored, so
   # it never exists there - without this exclude, `--delete` would wipe the
   # real .env already sitting in APP_DIR right before it gets regenerated
-  # below, which is what was silently resetting MyPostcard/other credentials
+  # below, which is what was silently resetting credentials
   # to their defaults on every redeploy.
   rsync -a --delete --exclude='.env' "${SCRIPT_DIR}/" "${APP_DIR}/"
 fi
@@ -157,7 +148,7 @@ fi
 # Postgres then rejects with "password authentication failed for user
 # postgres"). Everything else just gets a warning below - run ./setup_env.sh
 # afterwards to fill in real values without touching nano.
-for var_name in LEMON_SQUEEZY_API_KEY DB_PASSWORD; do
+for var_name in DB_PASSWORD; do
   var_value="${!var_name}"
   if [[ "${var_value}" == REPLACE_WITH_* ]]; then
     echo "ERROR: ${var_name} is still set to a placeholder value (${var_value})." >&2
@@ -166,7 +157,7 @@ for var_name in LEMON_SQUEEZY_API_KEY DB_PASSWORD; do
   fi
 done
 
-for var_name in MYPOSTCARD_API_KEY MYPOSTCARD_USERNAME MYPOSTCARD_PASSWORD LEMON_SQUEEZY_VARIANT_ID SMTP_USER SMTP_PASSWORD; do
+for var_name in PRODIGI_API_KEY SMTP_USER SMTP_PASSWORD; do
   var_value="${!var_name}"
   if [[ "${var_value}" == DUMMY_NOT_CONFIGURED || -z "${var_value}" ]]; then
     echo "WARNING: ${var_name} is not configured (using a dummy value); the related feature will not work until you set it, e.g. via ./setup_env.sh." >&2
@@ -181,18 +172,10 @@ FRONTEND_ORIGIN=${FRONTEND_ORIGIN}
 API_BASE_URL=${API_BASE_URL}
 PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
 FRONTEND_BASE_URL=${FRONTEND_BASE_URL}
-MYPOSTCARD_API_KEY=${MYPOSTCARD_API_KEY}
-MYPOSTCARD_USERNAME=${MYPOSTCARD_USERNAME}
-MYPOSTCARD_PASSWORD=${MYPOSTCARD_PASSWORD}
-MYPOSTCARD_CAMPAIGN_ID=${MYPOSTCARD_CAMPAIGN_ID}
-MYPOSTCARD_API_BASE_URL=${MYPOSTCARD_API_BASE_URL}
-LEMON_SQUEEZY_API_KEY=${LEMON_SQUEEZY_API_KEY}
-LEMON_SQUEEZY_STORE_ID=${LEMON_SQUEEZY_STORE_ID}
-LEMON_SQUEEZY_VARIANT_ID=${LEMON_SQUEEZY_VARIANT_ID}
-LEMON_SQUEEZY_VARIANT_ID_SINGLE=${LEMON_SQUEEZY_VARIANT_ID_SINGLE}
-LEMON_SQUEEZY_VARIANT_ID_FAMILY_5=${LEMON_SQUEEZY_VARIANT_ID_FAMILY_5}
-LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10=${LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10}
-LEMON_SQUEEZY_TEST_MODE=${LEMON_SQUEEZY_TEST_MODE}
+PRODIGI_API_KEY=${PRODIGI_API_KEY}
+PRODIGI_ENV=${PRODIGI_ENV}
+STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
 SMTP_HOST=${SMTP_HOST}
 SMTP_PORT=${SMTP_PORT}
 SMTP_USER=${SMTP_USER}

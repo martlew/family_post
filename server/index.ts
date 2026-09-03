@@ -7,6 +7,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 import { Pool } from "pg";
+import Stripe from "stripe";
+import { createProdigiOrder, renderPostcardBackSvg } from "./prodigi.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,46 +33,15 @@ async function startServer() {
     customerName?: string;
   };
 
-  type ForwardedPostcard = {
-    recipientName: string;
-    recipientAddress: string;
-    postcardType: string;
-    message: string;
-    selectedPlan: string;
-    source: string;
-    customerEmail?: string;
-    customerName?: string;
-    recipientPostalCode?: string;
-    recipientCity?: string;
-    imageUrl?: string;
-  };
-
-  type MyPostcardJobData = {
-    job_details: {
-      fontName: string;
-      text: string;
-      textColor: string;
-      fontSize: string;
-    };
-    recipients: Array<{
-      recipientName: string;
-      addressLine1: string;
-      city: string;
-      zip: string;
-      country: string;
-      countryiso: string;
-    }>;
-  };
-
-  const sentPostcards = new Map<string, ForwardedPostcard & { id: string; createdAt: string; recipientCity: string }>();
-
   type PaymentDraftStatus = "pending" | "paid";
   type PaymentPlanKey = "single" | "family-5" | "benefit-10";
 
   type PaymentPlanConfig = {
     key: PaymentPlanKey;
     credits: number;
-    variantId: string | null;
+    amountInCents: number;
+    name: string;
+    priceId: string | null;
   };
 
   type StoredPaymentDraft = PostcardDraft & {
@@ -79,12 +50,12 @@ async function startServer() {
     selectedPlan: PaymentPlanKey;
     creditsGranted: number;
     creditsRecordedAt: string | null;
-    lemonOrderId: string | null;
-    forwardedPostcardId: string | null;
+    stripeSessionId: string | null;
+    fulfillmentOrderId: string | null;
+    fulfillmentStatus: string | null;
     createdAt: string;
     updatedAt: string;
     paidAt: string | null;
-    forwardedAt: string | null;
   };
 
   type PaymentDraftRow = {
@@ -94,23 +65,21 @@ async function startServer() {
     credits_granted: number;
     credits_recorded_at: string | null;
     draft_data: Record<string, unknown> | string;
-    lemon_order_id: string | null;
-    forwarded_postcard_id: string | null;
+    stripe_session_id: string | null;
+    // Production database column names kept as gelato_order_id/gelato_status
+    // to avoid DB migration risks; mapped to fulfillmentOrderId/fulfillmentStatus in TypeScript.
+    gelato_order_id: string | null;
+    gelato_status: string | null;
     created_at: string;
     updated_at: string;
     paid_at: string | null;
-    forwarded_at: string | null;
   };
 
   // deploy.sh/fix_env_and_rebuild.sh fall back to these literal strings when
   // the real secret was never exported, so treat them as "unset" instead of
-  // letting them reach Postgres/Lemon Squeezy and surface as a cryptic
+  // letting them reach Postgres/Stripe and surface as a cryptic
   // failure deep inside a request.
   const isPlaceholderSecret = (value: string) => /^(REPLACE_WITH_|DUMMY_NOT_CONFIGURED)/i.test(value);
-
-  // Lemon Squeezy store ID is public (same value ships in VITE_LEMON_SQUEEZY_STORE_ID),
-  // so it's safe to default rather than require an operator to set it.
-  const DEFAULT_LEMON_STORE_ID = "429090";
 
   const getDatabaseConfig = () => {
     const connectionString = process.env.DB_URL?.trim();
@@ -190,13 +159,21 @@ async function startServer() {
           credits_granted INTEGER NOT NULL DEFAULT 0,
           credits_recorded_at TIMESTAMPTZ,
           draft_data JSONB NOT NULL,
-          lemon_order_id TEXT,
-          forwarded_postcard_id TEXT,
+          stripe_session_id TEXT,
+          -- Kept as gelato_order_id / gelato_status to prevent DB migration risks;
+          -- mapped to fulfillmentOrderId / fulfillmentStatus in TypeScript.
+          gelato_order_id TEXT,
+          gelato_status TEXT,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          paid_at TIMESTAMPTZ,
-          forwarded_at TIMESTAMPTZ
+          paid_at TIMESTAMPTZ
         );
+
+        -- payment_drafts predates Stripe and may still have the old lemon_order_id
+        -- column on production DBs; left in place (unused) rather than dropped.
+        ALTER TABLE payment_drafts ADD COLUMN IF NOT EXISTS stripe_session_id TEXT;
+        ALTER TABLE payment_drafts ADD COLUMN IF NOT EXISTS gelato_order_id TEXT;
+        ALTER TABLE payment_drafts ADD COLUMN IF NOT EXISTS gelato_status TEXT;
 
         CREATE INDEX IF NOT EXISTS payment_drafts_status_idx ON payment_drafts(status);
       `).then(() => undefined);
@@ -257,12 +234,12 @@ async function startServer() {
       selectedPlan: row.selected_plan,
       creditsGranted: row.credits_granted,
       creditsRecordedAt: row.credits_recorded_at,
-      lemonOrderId: row.lemon_order_id,
-      forwardedPostcardId: row.forwarded_postcard_id,
+      stripeSessionId: row.stripe_session_id,
+      fulfillmentOrderId: row.gelato_order_id,
+      fulfillmentStatus: row.gelato_status,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       paidAt: row.paid_at,
-      forwardedAt: row.forwarded_at,
     };
   };
 
@@ -278,12 +255,12 @@ async function startServer() {
           credits_granted,
           credits_recorded_at,
           draft_data,
-          lemon_order_id,
-          forwarded_postcard_id,
+          stripe_session_id,
+          gelato_order_id,
+          gelato_status,
           created_at::text AS created_at,
           updated_at::text AS updated_at,
-          paid_at::text AS paid_at,
-          forwarded_at::text AS forwarded_at
+          paid_at::text AS paid_at
         FROM payment_drafts
         WHERE draft_id = $1
         LIMIT 1
@@ -328,179 +305,27 @@ async function startServer() {
     return "single";
   };
 
-  // Real Lemon Squeezy variant IDs, used only when neither the plan-specific
-  // nor the base LEMON_SQUEEZY_VARIANT_ID env var is set.
-  const DEFAULT_LEMON_VARIANT_IDS = {
-    single: "1896112",
-    "family-5": "1896131",
-    "benefit-10": "1896134",
-  } as const;
+  // Fixed EUR prices, matching company/pricing.html; used as the Stripe
+  // price_data fallback when no pre-created Stripe Price ID is configured.
+  const STRIPE_PLAN_DEFAULTS: Record<PaymentPlanKey, { credits: number; amountInCents: number; name: string }> = {
+    single: { credits: 1, amountInCents: 499, name: "Einzelticket (1 Postkarte)" },
+    "family-5": { credits: 5, amountInCents: 2199, name: "Family-Paket (5 Postkarten)" },
+    "benefit-10": { credits: 10, amountInCents: 3999, name: "Vorteils-Paket (10 Postkarten)" },
+  };
 
   const getPlanConfig = (planKey: string): PaymentPlanConfig => {
     const normalizedPlan = normalizePlanKey(planKey);
-    const resolveVariant = (envName: string, fallback: string | null) => {
-      const raw = process.env[envName]?.trim();
-      if (!raw) {
-        return fallback;
-      }
-      if (isPlaceholderSecret(raw)) {
-        console.error(`[lemon] ${envName} is still set to a placeholder value ("${raw}"); falling back to LEMON_SQUEEZY_VARIANT_ID instead. Set the real ${envName} on the host/container.`);
-        return fallback;
-      }
-      return raw;
-    };
+    const defaults = STRIPE_PLAN_DEFAULTS[normalizedPlan];
 
-    const rawBaseVariantId = process.env.LEMON_SQUEEZY_VARIANT_ID?.trim() || process.env.VITE_LEMON_SQUEEZY_VARIANT_ID?.trim() || null;
-    const baseVariantId = rawBaseVariantId && !isPlaceholderSecret(rawBaseVariantId) ? rawBaseVariantId : null;
-    if (rawBaseVariantId && isPlaceholderSecret(rawBaseVariantId)) {
-      console.error(`[lemon] LEMON_SQUEEZY_VARIANT_ID is still set to a placeholder value ("${rawBaseVariantId}"). Check the environment variable used to start the familypost-backend container.`);
-    }
-    const singleVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_SINGLE", baseVariantId) || DEFAULT_LEMON_VARIANT_IDS.single;
-    const familyVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_FAMILY_5", baseVariantId) || DEFAULT_LEMON_VARIANT_IDS["family-5"];
-    const benefitVariantId = resolveVariant("LEMON_SQUEEZY_VARIANT_ID_BENEFIT_10", baseVariantId) || DEFAULT_LEMON_VARIANT_IDS["benefit-10"];
+    const priceIdEnvName =
+      normalizedPlan === "family-5" ? "STRIPE_PRICE_ID_FAMILY_5" : normalizedPlan === "benefit-10" ? "STRIPE_PRICE_ID_BENEFIT_10" : "STRIPE_PRICE_ID_SINGLE";
+    const rawPriceId = process.env[priceIdEnvName]?.trim();
+    const priceId = rawPriceId && !isPlaceholderSecret(rawPriceId) ? rawPriceId : null;
 
-    if (normalizedPlan === "family-5") {
-      return { key: normalizedPlan, credits: 5, variantId: familyVariantId };
-    }
-
-    if (normalizedPlan === "benefit-10") {
-      return { key: normalizedPlan, credits: 10, variantId: benefitVariantId };
-    }
-
-    return { key: "single", credits: 1, variantId: singleVariantId };
+    return { key: normalizedPlan, credits: defaults.credits, amountInCents: defaults.amountInCents, name: defaults.name, priceId };
   };
 
-  type LemonVariantInfo = {
-    id: string;
-    name: string;
-    productId: string;
-    productName: string;
-    status: string;
-  };
-
-  const fetchLemonVariantsFromApi = async (apiKey: string, storeId: string): Promise<LemonVariantInfo[]> => {
-    const headers = {
-      Accept: "application/vnd.api+json",
-      "Content-Type": "application/vnd.api+json",
-      Authorization: `Bearer ${apiKey}`,
-    };
-
-    const productsRes = await fetch(`https://api.lemonsqueezy.com/v1/products?filter[store_id]=${encodeURIComponent(storeId)}`, { headers });
-    const productsJson: any = await productsRes.json().catch(() => ({}));
-    if (!productsRes.ok) {
-      throw new Error(`Lemon Squeezy products request failed (${productsRes.status}): ${JSON.stringify(productsJson)}`);
-    }
-
-    const variants: LemonVariantInfo[] = [];
-    for (const product of productsJson.data || []) {
-      const variantsRes = await fetch(`https://api.lemonsqueezy.com/v1/variants?filter[product_id]=${encodeURIComponent(product.id)}`, { headers });
-      const variantsJson: any = await variantsRes.json().catch(() => ({}));
-      if (!variantsRes.ok) {
-        console.error(`[lemon] Failed to list variants for product ${product.id} ("${product.attributes?.name}"): ${variantsRes.status}`, variantsJson);
-        continue;
-      }
-
-      for (const variant of variantsJson.data || []) {
-        variants.push({
-          id: String(variant.id),
-          name: variant.attributes?.name || "",
-          productId: String(product.id),
-          productName: product.attributes?.name || "",
-          status: variant.attributes?.status || "unknown",
-        });
-      }
-    }
-
-    return variants;
-  };
-
-  // Short-lived cache so every checkout request doesn't have to hit Lemon
-  // Squeezy's API just to validate the configured variant ID.
-  let lemonVariantCache: { fetchedAt: number; variants: LemonVariantInfo[] } | null = null;
-  const LEMON_VARIANT_CACHE_TTL_MS = 5 * 60 * 1000;
-
-  const getLemonVariantsCached = async (): Promise<LemonVariantInfo[] | null> => {
-    const config = getLemonConfig();
-    if (!config.apiKey) {
-      return null;
-    }
-
-    const now = Date.now();
-    if (lemonVariantCache && now - lemonVariantCache.fetchedAt < LEMON_VARIANT_CACHE_TTL_MS) {
-      return lemonVariantCache.variants;
-    }
-
-    try {
-      const variants = await fetchLemonVariantsFromApi(config.apiKey, config.storeId);
-      lemonVariantCache = { fetchedAt: now, variants };
-      return variants;
-    } catch (error: any) {
-      console.error("[lemon] Failed to fetch variants from the Lemon Squeezy API", error?.message || error);
-      return lemonVariantCache?.variants ?? null;
-    }
-  };
-
-  // Prints every variant Lemon Squeezy actually has for this store so a
-  // misconfigured/stale LEMON_SQUEEZY_VARIANT_ID* shows up immediately in
-  // the container logs instead of as a 404 during checkout.
-  const logLemonVariantsOnStartup = async () => {
-    const config = getLemonConfig();
-    if (!config.apiKey) {
-      return;
-    }
-
-    const variants = await getLemonVariantsCached();
-    if (!variants || variants.length === 0) {
-      console.warn("[lemon] Could not retrieve any variants from the Lemon Squeezy API - check LEMON_SQUEEZY_API_KEY/LEMON_SQUEEZY_STORE_ID.");
-      return;
-    }
-
-    console.log(`[lemon] Found ${variants.length} variant(s) in store ${config.storeId}:`);
-    for (const variant of variants) {
-      console.log(`  - variantId=${variant.id} name="${variant.name}" product="${variant.productName}" status=${variant.status}`);
-    }
-  };
-
-  // Never send a variant ID to Lemon Squeezy that we haven't confirmed
-  // exists in this store - that's what produced the "404: The related
-  // resource does not exist" error. Falls back to a name-based match on the
-  // plan's credit count (e.g. "5" for family-5) when the configured ID is
-  // stale, and only gives up if nothing matches.
-  const resolvePlanVariantId = (plan: PaymentPlanConfig, validVariants: LemonVariantInfo[] | null): string | null => {
-    if (!plan.variantId) {
-      return null;
-    }
-
-    if (!validVariants || validVariants.length === 0) {
-      // Lemon Squeezy API unreachable right now - use the configured value
-      // as-is rather than blocking checkout entirely.
-      return plan.variantId;
-    }
-
-    if (validVariants.some((variant) => variant.id === plan.variantId)) {
-      return plan.variantId;
-    }
-
-    console.error(
-      `[lemon] Configured variant ID "${plan.variantId}" for plan "${plan.key}" does not exist in this store. Valid variant IDs: ${validVariants
-        .map((variant) => `${variant.id} ("${variant.name}", product "${variant.productName}")`)
-        .join(", ")}`,
-    );
-
-    const fallback = validVariants.find((variant) => {
-      const match = `${variant.name} ${variant.productName}`.match(/\d+/);
-      return match ? Number.parseInt(match[0], 10) === plan.credits : false;
-    });
-
-    if (fallback) {
-      console.warn(`[lemon] Falling back to variant ${fallback.id} ("${fallback.name}") for plan "${plan.key}" based on a ${plan.credits}-credit name match. Update LEMON_SQUEEZY_VARIANT_ID_* in .env to silence this.`);
-      return fallback.id;
-    }
-
-    return null;
-  };
-
-  const applySuccessfulPayment = async (draftId: string, orderId: string) => {
+  const applySuccessfulPayment = async (draftId: string, stripeSessionId: string) => {
     await ensurePaymentDraftSchema();
     await ensureCustomerCreditsSchema();
     const db = requirePaymentDraftsDb();
@@ -517,12 +342,12 @@ async function startServer() {
             credits_granted,
             credits_recorded_at,
             draft_data,
-            lemon_order_id,
-            forwarded_postcard_id,
+            stripe_session_id,
+            gelato_order_id,
+            gelato_status,
             created_at::text AS created_at,
             updated_at::text AS updated_at,
-            paid_at::text AS paid_at,
-            forwarded_at::text AS forwarded_at
+            paid_at::text AS paid_at
           FROM payment_drafts
           WHERE draft_id = $1
           FOR UPDATE
@@ -537,18 +362,18 @@ async function startServer() {
       }
 
       const shouldCredit = !row.credits_recorded_at;
-      if (row.status !== "paid" || row.lemon_order_id !== orderId || shouldCredit) {
+      if (row.status !== "paid" || row.stripe_session_id !== stripeSessionId || shouldCredit) {
         await client.query(
           `
             UPDATE payment_drafts
             SET status = 'paid',
-                lemon_order_id = $2,
+                stripe_session_id = $2,
                 paid_at = COALESCE(paid_at, NOW()),
                 credits_recorded_at = COALESCE(credits_recorded_at, NOW()),
                 updated_at = NOW()
             WHERE draft_id = $1
           `,
-          [draftId, orderId],
+          [draftId, stripeSessionId],
         );
       }
 
@@ -581,12 +406,12 @@ async function startServer() {
             credits_granted,
             credits_recorded_at,
             draft_data,
-            lemon_order_id,
-            forwarded_postcard_id,
+            stripe_session_id,
+            gelato_order_id,
+            gelato_status,
             created_at::text AS created_at,
             updated_at::text AS updated_at,
-            paid_at::text AS paid_at,
-            forwarded_at::text AS forwarded_at
+            paid_at::text AS paid_at
           FROM payment_drafts
           WHERE draft_id = $1
         `,
@@ -603,18 +428,18 @@ async function startServer() {
     }
   };
 
-  const markPaymentDraftForwarded = async (draftId: string, forwardedPostcardId: string) => {
+  const markPaymentDraftPrintOrder = async (draftId: string, printOrderId: string, printOrderStatus: string) => {
     await ensurePaymentDraftSchema();
     const db = requirePaymentDraftsDb();
     await db.query(
       `
         UPDATE payment_drafts
-        SET forwarded_postcard_id = $2,
-            forwarded_at = COALESCE(forwarded_at, NOW()),
+        SET gelato_order_id = $2,
+            gelato_status = $3,
             updated_at = NOW()
         WHERE draft_id = $1
       `,
-      [draftId, forwardedPostcardId],
+      [draftId, printOrderId, printOrderStatus],
     );
   };
 
@@ -640,75 +465,34 @@ async function startServer() {
       : "http://localhost:3001";
   };
 
-  const getLemonConfig = () => {
-    const apiKey = process.env.LEMON_SQUEEZY_API_KEY?.trim() || process.env.VITE_LEMON_SQUEEZY_API_KEY?.trim();
-    const rawStoreId = process.env.LEMON_SQUEEZY_STORE_ID?.trim() || process.env.VITE_LEMON_SQUEEZY_STORE_ID?.trim();
-    const variantId = process.env.LEMON_SQUEEZY_VARIANT_ID?.trim() || process.env.VITE_LEMON_SQUEEZY_VARIANT_ID?.trim();
+  const getStripeConfig = () => {
+    const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
 
-    const storeId = rawStoreId && !isPlaceholderSecret(rawStoreId) ? rawStoreId : DEFAULT_LEMON_STORE_ID;
-    if (!rawStoreId || isPlaceholderSecret(rawStoreId)) {
-      console.warn(`[lemon] LEMON_SQUEEZY_STORE_ID is not set (or a placeholder); using the default store ${DEFAULT_LEMON_STORE_ID}.`);
-    }
-
-    const resolved: Record<string, string | undefined> = { LEMON_SQUEEZY_API_KEY: apiKey, LEMON_SQUEEZY_VARIANT_ID: variantId };
-    for (const [name, value] of Object.entries(resolved)) {
-      if (!value) {
-        console.error(`[lemon] ${name} is not set on this host/container. Check the ${name} environment variable used to start the familypost-backend container.`);
-      } else if (isPlaceholderSecret(value)) {
-        console.error(`[lemon] ${name} is still set to a placeholder value ("${value}"). The real value never made it from the host into the container's environment.`);
-      }
+    if (!secretKey) {
+      console.error("[stripe] STRIPE_SECRET_KEY is not set on this host/container.");
+    } else if (isPlaceholderSecret(secretKey)) {
+      console.error(`[stripe] STRIPE_SECRET_KEY is still set to a placeholder value ("${secretKey}"). The real value never made it from the host into the container's environment.`);
     }
 
     return {
-      apiKey: apiKey && !isPlaceholderSecret(apiKey) ? apiKey : undefined,
-      storeId,
-      variantId: variantId && !isPlaceholderSecret(variantId) ? variantId : undefined,
-      testMode: String(process.env.LEMON_SQUEEZY_TEST_MODE || "false").toLowerCase() === "true",
+      secretKey: secretKey && !isPlaceholderSecret(secretKey) ? secretKey : undefined,
+      webhookSecret: webhookSecret && !isPlaceholderSecret(webhookSecret) ? webhookSecret : undefined,
     };
   };
 
-  const getMyPostcardConfig = () => {
-    const apiKey = process.env.MYPOSTCARD_API_KEY?.trim();
-    const username = process.env.MYPOSTCARD_USERNAME?.trim();
-    const password = process.env.MYPOSTCARD_PASSWORD?.trim();
-    const campaignId = process.env.MYPOSTCARD_CAMPAIGN_ID?.trim();
-    const baseUrl = (process.env.MYPOSTCARD_API_BASE_URL || "https://www.mypostcard.com").trim();
-
-    return { apiKey, username, password, campaignId, baseUrl };
-  };
-
-  const getMyPostcardAuthToken = async (config: ReturnType<typeof getMyPostcardConfig>) => {
-    const endpoint = `${config.baseUrl}/api/v1/auth`;
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        api_key: config.apiKey || "",
-        username: config.username || "",
-        password: config.password || "",
-      }),
-    });
-
-    const rawBody = await response.text();
-    let data: any = {};
-    try {
-      data = rawBody ? JSON.parse(rawBody) : {};
-    } catch {
-      data = { raw: rawBody };
+  let stripeClient: Stripe | null = null;
+  const getStripeClient = (): Stripe => {
+    const config = getStripeConfig();
+    if (!config.secretKey) {
+      throw new Error("Missing STRIPE_SECRET_KEY.");
     }
 
-    if (!response.ok || !data?.auth_token) {
-      console.error("[mypostcard] auth request rejected", {
-        endpoint,
-        status: response.status,
-        statusText: response.statusText,
-        contentType: response.headers.get("content-type"),
-        rawBody,
-      });
-      throw new Error(`MyPostcard-Authentifizierung fehlgeschlagen (${response.status}): ${rawBody}`);
+    if (!stripeClient) {
+      stripeClient = new Stripe(config.secretKey);
     }
 
-    return String(data.auth_token);
+    return stripeClient;
   };
 
   const splitRecipientName = (recipientName: string) => {
@@ -837,7 +621,7 @@ async function startServer() {
           <tr><td style="padding:4px 12px 4px 0;color:#4A635C">Empfänger</td><td>${draft.recipientName}</td></tr>
           <tr><td style="padding:4px 12px 4px 0;color:#4A635C">Bestellnummer</td><td>${draft.draftId}</td></tr>
         </table>
-        <p style="font-size:12px;color:#4A635C">Diese E-Mail ist deine Bestellbestätigung von Family Post. Die Zahlungsquittung erhältst du separat von unserem Zahlungsabwickler Lemon Squeezy.</p>
+        <p style="font-size:12px;color:#4A635C">Diese E-Mail ist deine Bestellbestätigung von Family Post. Die Zahlungsquittung erhältst du separat von unserem Zahlungsabwickler Stripe.</p>
       </div>
     `;
   };
@@ -885,127 +669,71 @@ async function startServer() {
     });
   };
 
-  const forwardToMyPostcard = async (payload: ForwardedPostcard) => {
-    const config = getMyPostcardConfig();
-
-    if (!config.apiKey || !config.username || !config.password) {
-      throw new Error("Missing MYPOSTCARD_API_KEY, MYPOSTCARD_USERNAME or MYPOSTCARD_PASSWORD");
+  // Shared fulfillment logic invoked both by the Stripe webhook (source of truth)
+  // and, as a fallback, by the success_url redirect handler below - idempotent via
+  // applySuccessfulPayment's credits_recorded_at/fulfillmentOrderId guards, so it's safe
+  // to call twice for the same draft.
+  const fulfillPaidDraft = async (draftId: string, stripeSessionId: string, requestId: string) => {
+    const updatedDraft = await applySuccessfulPayment(draftId, stripeSessionId);
+    if (!updatedDraft) {
+      return null;
     }
 
-    if (!payload.imageUrl) {
-      throw new Error("Missing imageUrl for MyPostcard order");
+    console.log(`[payments:${requestId}] payment applied`, {
+      draftId,
+      stripeSessionId,
+      creditsGranted: updatedDraft.creditsGranted,
+      selectedPlan: updatedDraft.selectedPlan,
+      creditsRecordedAt: updatedDraft.creditsRecordedAt,
+    });
+
+    if (!updatedDraft.fulfillmentOrderId) {
+      // The payment was already committed as "paid" by applySuccessfulPayment
+      // above (its own DB transaction) before we ever call the print partner.
+      // A Prodigi outage/bad-credentials failure must not undo that - it's
+      // caught separately here and only logged.
+      try {
+        const apiBaseUrl = getApiBaseUrl();
+        const backUrl = apiBaseUrl.startsWith("https://")
+          ? `${apiBaseUrl}/api/postcards/${encodeURIComponent(draftId)}/back.svg`
+          : undefined;
+
+        const prodigiOrder = await createProdigiOrder({
+          recipientName: updatedDraft.recipientName,
+          recipientAddress: updatedDraft.recipientAddress,
+          recipientPostalCode: updatedDraft.recipientPostalCode,
+          recipientCity: updatedDraft.recipientCity,
+          customerEmail: updatedDraft.customerEmail,
+          imageUrl: updatedDraft.imageUrl,
+          message: updatedDraft.message,
+          backUrl,
+        });
+        await markPaymentDraftPrintOrder(draftId, prodigiOrder.id, prodigiOrder.status);
+        updatedDraft.fulfillmentOrderId = prodigiOrder.id;
+        updatedDraft.fulfillmentStatus = prodigiOrder.status;
+        console.log(`[payments:${requestId}] Prodigi order created`, { draftId, prodigiOrderId: prodigiOrder.id, prodigiStatus: prodigiOrder.status });
+      } catch (prodigiError: any) {
+        console.error(`[payments:${requestId}] Prodigi order creation failed after payment was already applied`, {
+          draftId,
+          error: prodigiError?.message || prodigiError,
+          stack: prodigiError?.stack,
+        });
+      }
     }
 
-    const { firstName, lastName } = splitRecipientName(payload.recipientName);
-    const resolvedLocation = extractPostalCodeAndCity(payload.recipientPostalCode, payload.recipientCity);
-
-    // MyPostcard's upstream has rejected orders (403) containing "&" or
-    // parentheses in the recipient's address fields, so sanitize defensively.
-    const sanitizeRecipientText = (value: string) => value.replace(/&/g, "und").trim();
-    const sanitizeCity = (value: string) => sanitizeRecipientText(value).replace(/[()]/g, "").trim();
-
-    const authToken = await getMyPostcardAuthToken(config);
-    const endpoint = `${config.baseUrl}/api/v1/place_order`;
-
-    const recipientFullName = sanitizeRecipientText(
-      [firstName, lastName].filter(Boolean).join(" ").trim() || payload.recipientName.trim()
-    );
-
-    // job_data must be sent as a JSON *string* field, not individual fields (see MyPostcard Postman collection).
-    const jobData: MyPostcardJobData = {
-      job_details: {
-        fontName: "StoneHandwriting",
-        text: payload.message.replace(/\r\n/g, "\n").trim(),
-        textColor: "blue",
-        fontSize: "L",
-      },
-      recipients: [
-        {
-          recipientName: recipientFullName,
-          addressLine1: sanitizeRecipientText(payload.recipientAddress.trim()),
-          city: sanitizeCity(resolvedLocation.city),
-          zip: resolvedLocation.postalCode,
-          country: "Deutschland",
-          countryiso: "DE",
-        },
-      ],
-    };
-
-    // MyPostcard's Postman collection expects the postcard image as a real uploaded
-    // file field ("photo"), not a URL string, plus a separate "image_type" field.
-    const imageResponse = await fetch(payload.imageUrl);
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to download postcard image for MyPostcard upload (${imageResponse.status})`);
-    }
-    const imageContentType = imageResponse.headers.get("content-type") || "";
-    const imageType = imageContentType.includes("png") || payload.imageUrl.toLowerCase().endsWith(".png") ? "png" : "jpg";
-    const photoBlob = await imageResponse.blob();
-
-    const debugPayload = {
-      product_code: "J9GCU",
-      job_data: jobData,
-      image_type: imageType,
-      campaign_id: config.campaignId,
-    };
-
-    const formData = new FormData();
-    formData.append("api_key", config.apiKey || "");
-    formData.append("auth_token", authToken);
-    formData.append("product_code", "J9GCU");
-    formData.append("job_data", JSON.stringify(jobData));
-    formData.append("photo", photoBlob, `postcard.${imageType}`);
-    formData.append("image_type", imageType);
-    if (config.campaignId) {
-      formData.append("campaign_id", config.campaignId);
-    }
-
-    console.log("[mypostcard] Sending payload:", JSON.stringify(debugPayload));
-
-    let upstreamResponse: Response;
-    let rawBody = "";
-
+    // The customer already paid at this point, so a confirmation mail failure
+    // must not block fulfillment - only log it.
     try {
-      upstreamResponse = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: formData,
+      await sendOrderConfirmationMail(updatedDraft, requestId);
+    } catch (mailError: any) {
+      console.error(`[payments:${requestId}] order confirmation mail failed`, {
+        draftId,
+        error: mailError?.message || mailError,
+        stack: mailError?.stack,
       });
-      rawBody = await upstreamResponse.text();
-    } catch (error: any) {
-      console.error("[mypostcard] fetch failed", {
-        endpoint,
-        error: error?.message || error,
-        stack: error?.stack,
-        debugPayload,
-      });
-      throw error;
     }
 
-    let data: any = {};
-    try {
-      data = rawBody ? JSON.parse(rawBody) : {};
-    } catch {
-      data = { raw: rawBody };
-    }
-
-    if (!upstreamResponse.ok || data?.success === false) {
-      console.error("[mypostcard:order_error]", rawBody);
-      console.error("[mypostcard] upstream rejected submission", {
-        endpoint,
-        status: upstreamResponse.status,
-        statusText: upstreamResponse.statusText,
-        contentType: upstreamResponse.headers.get("content-type"),
-        rawBody,
-        debugPayload,
-      });
-      const error = new Error(`MyPostcard submission failed with status ${upstreamResponse.status}`);
-      (error as Error & { details?: unknown }).details = data;
-      throw error;
-    }
-
-    return data;
+    return updatedDraft;
   };
 
   const rawFrontendOrigin = process.env.FRONTEND_ORIGIN || "*";
@@ -1053,6 +781,60 @@ async function startServer() {
       return res.status(204).end();
     }
     return next();
+  });
+
+  // Registered before the generic express.json() body parser below so the
+  // raw request body is preserved for Stripe's webhook signature verification
+  // (stripe.webhooks.constructEvent requires the exact unparsed bytes).
+  app.post("/api/payments/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+    const stripeConfig = getStripeConfig();
+    if (!stripeConfig.secretKey || !stripeConfig.webhookSecret) {
+      console.error("[payments:webhook] Stripe is not configured (missing STRIPE_SECRET_KEY/STRIPE_WEBHOOK_SECRET).");
+      return res.status(500).send("Stripe webhook not configured.");
+    }
+
+    const signature = req.headers["stripe-signature"];
+    let event: Stripe.Event;
+    try {
+      const stripe = getStripeClient();
+      event = stripe.webhooks.constructEvent(req.body, signature as string, stripeConfig.webhookSecret);
+    } catch (error: any) {
+      console.error("[payments:webhook] signature verification failed", error?.message || error);
+      return res.status(400).send(`Webhook Error: ${error?.message || "invalid signature"}`);
+    }
+
+    console.log("[payments:webhook] received event", { type: event.type, id: event.id });
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const draftId = session.metadata?.draftId || session.client_reference_id || "";
+
+      if (!draftId) {
+        console.error("[payments:webhook] checkout.session.completed is missing draftId metadata", { sessionId: session.id });
+        return res.status(200).json({ received: true });
+      }
+
+      if (session.payment_status !== "paid") {
+        console.log("[payments:webhook] session not paid yet, skipping fulfillment", {
+          draftId,
+          sessionId: session.id,
+          paymentStatus: session.payment_status,
+        });
+        return res.status(200).json({ received: true });
+      }
+
+      try {
+        const updatedDraft = await fulfillPaidDraft(draftId, session.id, `webhook-${event.id}`);
+        if (!updatedDraft) {
+          console.error("[payments:webhook] draft not found for session", { draftId, sessionId: session.id });
+        }
+      } catch (error: any) {
+        console.error("[payments:webhook] fulfillment failed", { draftId, sessionId: session.id, error: error?.message || error });
+        return res.status(500).json({ error: "Fulfillment failed" });
+      }
+    }
+
+    return res.status(200).json({ received: true });
   });
 
   app.use(express.json({ limit: "50mb" }));
@@ -1303,12 +1085,12 @@ async function startServer() {
             credits_granted,
             credits_recorded_at,
             draft_data,
-            lemon_order_id,
-            forwarded_postcard_id,
+            stripe_session_id,
+            gelato_order_id,
+            gelato_status,
             created_at::text AS created_at,
             updated_at::text AS updated_at,
-            paid_at::text AS paid_at,
-            forwarded_at::text AS forwarded_at
+            paid_at::text AS paid_at
           FROM payment_drafts
           WHERE status = 'paid' AND draft_data->>'customerEmail' = $1
           ORDER BY paid_at DESC NULLS LAST, updated_at DESC
@@ -1325,6 +1107,8 @@ async function startServer() {
           recipientName: draft.recipientName,
           recipientAddress: draft.recipientAddress,
           recipientCity: `${draft.recipientPostalCode} ${draft.recipientCity}`.trim(),
+          fulfillmentOrderId: draft.fulfillmentOrderId,
+          fulfillmentStatus: draft.fulfillmentStatus,
           createdAt: draft.paidAt || draft.createdAt,
         };
       });
@@ -1351,6 +1135,8 @@ async function startServer() {
             recipientName: draft.recipientName,
             recipientAddress: draft.recipientAddress,
             recipientCity: `${draft.recipientPostalCode} ${draft.recipientCity}`.trim(),
+            fulfillmentOrderId: draft.fulfillmentOrderId,
+            fulfillmentStatus: draft.fulfillmentStatus,
             createdAt: draft.paidAt || draft.createdAt,
           },
         });
@@ -1359,46 +1145,60 @@ async function startServer() {
       console.error("[postcards:get] draft lookup failed", error?.message || error);
     }
 
-    // Fall back to the in-memory map for postcards forwarded before this
-    // endpoint started reading from the persisted payment_drafts table.
-    const postcard = sentPostcards.get(id);
-    if (!postcard) {
-      return res.status(404).json({ error: "Postkarte nicht gefunden." });
-    }
+    return res.status(404).json({ error: "Postkarte nicht gefunden." });
+  });
 
-    return res.status(200).json({ success: true, postcard });
+  app.get("/api/postcards/:id/back.svg", async (req, res) => {
+    const id = String(req.params.id || "").trim();
+    try {
+      const draft = await getPaymentDraft(id);
+      if (draft) {
+        const svg = renderPostcardBackSvg({
+          message: draft.message,
+          recipientName: draft.recipientName,
+          recipientAddress: draft.recipientAddress,
+          recipientPostalCode: draft.recipientPostalCode,
+          recipientCity: draft.recipientCity,
+        });
+        res.setHeader("Content-Type", "image/svg+xml");
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        return res.status(200).send(svg);
+      }
+    } catch (error: any) {
+      console.error("[postcards:back-svg] generation failed", error?.message || error);
+    }
+    return res.status(404).send("Not found");
   });
 
   app.post("/api/checkout", async (req, res) => {
-    const { recipientName, recipientAddress, recipientPostalCode, recipientCity, postcardType, message, selectedPlan, imageUrl } = req.body ?? {};
+    const { recipientName, recipientAddress, recipientPostalCode, recipientCity, message, imageUrl, customerEmail, country } = req.body ?? {};
     if (!recipientName || !recipientAddress || !recipientPostalCode || !recipientCity || !message || !imageUrl) {
       return res.status(400).json({ error: "recipientName, recipientAddress, recipientPostalCode, recipientCity, imageUrl und message sind erforderlich." });
     }
 
     try {
-      const data = await forwardToMyPostcard({
+      const prodigi = await createProdigiOrder({
         recipientName,
         recipientAddress,
         recipientPostalCode,
         recipientCity,
-        postcardType: postcardType || "standard",
-        message,
-        selectedPlan: selectedPlan || "single",
-        source: "familypost-do-backend",
+        country,
+        customerEmail,
         imageUrl,
+        message,
       });
 
-      return res.status(200).json({ success: true, data });
+      return res.status(200).json({
+        success: true,
+        prodigi: { id: prodigi.id, status: prodigi.status },
+      });
     } catch (error: any) {
-      return res.status(500).json({ error: error?.message || "Failed to submit to MyPostcard", details: error?.details || "Unknown error" });
+      return res.status(500).json({ error: error?.message || "Failed to submit to Prodigi", details: error?.details || "Unknown error" });
     }
   });
 
   app.post("/api/payments/create-checkout", async (req, res) => {
-    const config = getLemonConfig();
-    if (!config.apiKey || !config.storeId) {
-      return res.status(500).json({ error: "Missing Lemon Squeezy configuration." });
-    }
+    const stripeConfig = getStripeConfig();
 
     const rawSelectedPlan = String(req.body?.selectedPlan ?? "").trim();
     const normalizedSelectedPlan = normalizePlanKey(rawSelectedPlan || "single");
@@ -1414,6 +1214,7 @@ async function startServer() {
       promoCode,
       customerEmail,
       customerName,
+      country,
     } = req.body ?? {};
 
     if (!imageUrl || !message || !recipientName || !recipientAddress || !recipientPostalCode || !recipientCity) {
@@ -1421,26 +1222,7 @@ async function startServer() {
     }
 
     const planConfig = getPlanConfig(normalizedSelectedPlan);
-    const validVariants = await getLemonVariantsCached();
-    const resolvedVariantId = resolvePlanVariantId(planConfig, validVariants);
-    if (!resolvedVariantId) {
-      return res.status(500).json({ error: `Missing Lemon Squeezy variant configuration for ${normalizedSelectedPlan}.` });
-    }
-
     const draftId = crypto.randomUUID();
-
-    const checkoutRedirectUrl = `${getApiBaseUrl()}/api/payments/complete?draftId=${draftId}&selectedPlan=${encodeURIComponent(planConfig.key)}&order_id=[order_id]&order_key=${draftId}`;
-
-    console.log("[payments:create-checkout] incoming body", {
-      rawSelectedPlan,
-      normalizedSelectedPlan,
-      matchesMapping: rawSelectedPlan === normalizedSelectedPlan,
-      recipientCity,
-      recipientPostalCode,
-      customerEmail: customerEmail || null,
-      testMode: config.testMode,
-    });
-
     const draft = {
       imageUrl,
       message,
@@ -1454,88 +1236,136 @@ async function startServer() {
       customerName,
     };
 
+    // Dev-only bypass: skips Stripe AND payment_drafts/customer_credits persistence
+    // entirely, and just creates the Prodigi order directly so the Prodigi flow
+    // can be tested locally without a live Stripe secret key or a configured database.
+    if (process.env.NODE_ENV !== "production" && !stripeConfig.secretKey) {
+      console.warn("[payments:create-checkout] Stripe not configured - using dev bypass (Prodigi only, no DB persistence).");
+      try {
+        // Prodigi needs a publicly fetchable https image - a data:-URI from a local photo upload
+        // isn't reachable by Prodigi, so fall back to a public placeholder for dev testing only.
+        const DEV_PLACEHOLDER_IMAGE_URL = "https://picsum.photos/1200/800";
+        let prodigiImageUrl = imageUrl;
+        if (!/^https:\/\//i.test(String(imageUrl || "").trim())) {
+          console.warn("[payments:create-checkout] dev bypass: imageUrl is not a public https URL, substituting placeholder", {
+            received: String(imageUrl || "").slice(0, 40),
+          });
+          prodigiImageUrl = DEV_PLACEHOLDER_IMAGE_URL;
+        }
+
+        const prodigi = await createProdigiOrder({
+          recipientName,
+          recipientAddress,
+          recipientPostalCode,
+          recipientCity,
+          country,
+          customerEmail,
+          imageUrl: prodigiImageUrl,
+        });
+
+        return res.status(200).json({
+          success: true,
+          dev: true,
+          draftId,
+          prodigi: { id: prodigi.id, status: prodigi.status },
+          redirectUrl: `/order-success?draftId=${encodeURIComponent(draftId)}&status=complete&hasEmail=${customerEmail ? "1" : "0"}`,
+        });
+      } catch (error: any) {
+        console.error("[payments:create-checkout] dev bypass failed", {
+          message: error?.message || error,
+          details: error?.details,
+        });
+        return res.status(500).json({ error: error?.message || "Dev-Checkout (Prodigi) fehlgeschlagen.", details: error?.details });
+      }
+    }
+
+    if (!stripeConfig.secretKey) {
+      return res.status(500).json({ error: "Missing Stripe configuration." });
+    }
+
+    const successUrl = `${getApiBaseUrl()}/api/payments/complete?draftId=${draftId}&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${getFrontendBaseUrl()}/editor?checkout=cancelled`;
+
+    console.log("[payments:create-checkout] incoming body", {
+      rawSelectedPlan,
+      normalizedSelectedPlan,
+      matchesMapping: rawSelectedPlan === normalizedSelectedPlan,
+      recipientCity,
+      recipientPostalCode,
+      customerEmail: customerEmail || null,
+    });
+
     console.log("[payments:create-checkout] resolved checkout config", {
       draftId,
       selectedPlan: planConfig.key,
       credits: planConfig.credits,
-      variantId: resolvedVariantId,
-      redirectUrl: checkoutRedirectUrl,
+      priceId: planConfig.priceId,
+      successUrl,
     });
 
     try {
       await createPaymentDraft(draftId, draft);
 
-      const response = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
-        method: "POST",
-        headers: {
-          Accept: "application/vnd.api+json",
-          "Content-Type": "application/vnd.api+json",
-          Authorization: `Bearer ${config.apiKey}`,
+      const stripe = getStripeClient();
+      const trimmedPromoCode = String(promoCode || "").trim();
+
+      // Resolve a human-typed promo code to a real Stripe promotion code up front;
+      // Stripe rejects setting both `discounts` and `allow_promotion_codes` on the
+      // same session, so only fall back to the manual-entry field when no match is found.
+      let discounts: Stripe.Checkout.SessionCreateParams["discounts"];
+      if (trimmedPromoCode) {
+        try {
+          const promotionCodes = await stripe.promotionCodes.list({ code: trimmedPromoCode, active: true, limit: 1 });
+          const promotionCode = promotionCodes.data[0];
+          if (promotionCode) {
+            discounts = [{ promotion_code: promotionCode.id }];
+          } else {
+            console.warn("[payments:create-checkout] promo code not found/active in Stripe, falling back to manual entry field", { promoCode: trimmedPromoCode });
+          }
+        } catch (promoError: any) {
+          console.error("[payments:create-checkout] promo code lookup failed, falling back to manual entry field", promoError?.message || promoError);
+        }
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        locale: "de",
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        customer_email: customerEmail || undefined,
+        client_reference_id: draftId,
+        metadata: {
+          draftId,
+          selectedPlan: planConfig.key,
+          credits: String(planConfig.credits),
+          recipientName: String(recipientName || ""),
+          customerName: String(customerName || ""),
         },
-        body: JSON.stringify({
-          data: {
-            type: "checkouts",
-            attributes: {
-              checkout_data: {
-                email: customerEmail || undefined,
-                name: customerName || recipientName,
-                discount_code: promoCode || undefined,
-                custom: {
-                  draft_id: draftId,
-                  selected_plan: planConfig.key,
-                  credits: String(planConfig.credits),
+        line_items: [
+          planConfig.priceId
+            ? { price: planConfig.priceId, quantity: 1 }
+            : {
+                price_data: {
+                  currency: "eur",
+                  unit_amount: planConfig.amountInCents,
+                  product_data: { name: planConfig.name },
                 },
+                quantity: 1,
               },
-              product_options: {
-                redirect_url: checkoutRedirectUrl,
-                enabled_variants: [Number.parseInt(resolvedVariantId, 10)].filter(Number.isFinite),
-              },
-              checkout_options: {
-                locale: "de",
-                logo: false,
-                media: true,
-                desc: true,
-                discount: true,
-                subscription_preview: false,
-              },
-              test_mode: config.testMode,
-            },
-            relationships: {
-              store: {
-                data: { type: "stores", id: String(config.storeId) },
-              },
-              variant: {
-                data: { type: "variants", id: String(resolvedVariantId) },
-              },
-            },
-          },
-        }),
+        ],
+        ...(discounts ? { discounts } : { allow_promotion_codes: true }),
       });
 
-      const responseText = await response.text();
-      let payload: any = {};
-      try {
-        payload = responseText ? JSON.parse(responseText) : {};
-      } catch {
-        payload = { raw: responseText };
-      }
-      console.log("[payments:create-checkout] lemon response", {
-        ok: response.ok,
-        status: response.status,
-        contentType: response.headers.get("content-type"),
-        checkoutId: payload?.data?.id || null,
-        checkoutUrl: payload?.data?.attributes?.url || null,
-        rawBody: responseText,
+      console.log("[payments:create-checkout] stripe session created", {
+        draftId,
+        sessionId: session.id,
+        checkoutUrl: session.url,
       });
-      if (!response.ok) {
-        await requirePaymentDraftsDb().query("DELETE FROM payment_drafts WHERE draft_id = $1", [draftId]).catch(() => undefined);
-        return res.status(response.status).json({ error: "Checkout konnte nicht erstellt werden.", details: payload });
-      }
 
       return res.status(200).json({
         success: true,
-        checkoutId: payload?.data?.id,
-        checkoutUrl: payload?.data?.attributes?.url,
+        checkoutId: session.id,
+        checkoutUrl: session.url,
         draftId,
       });
     } catch (error: any) {
@@ -1546,39 +1376,30 @@ async function startServer() {
   });
 
   app.get("/api/payments/complete", async (req, res) => {
-    const config = getLemonConfig();
+    const stripeConfig = getStripeConfig();
     const draftId = String(req.query.draftId ?? "").trim();
-    const orderId = String(req.query.order_id ?? req.query.orderId ?? "").trim();
-    const orderKey = String(req.query.order_key ?? req.query.orderKey ?? "").trim();
-    const selectedPlanFromQuery = String(req.query.selectedPlan ?? req.query.selected_plan ?? "").trim();
+    const sessionId = String(req.query.session_id ?? req.query.sessionId ?? "").trim();
 
     console.log("[payments:complete] incoming query", {
       query: req.query,
       draftId,
-      orderId,
-      orderKey,
-      selectedPlanFromQuery,
-      testMode: config.testMode,
-      hasApiKey: Boolean(config.apiKey),
+      sessionId,
+      hasSecretKey: Boolean(stripeConfig.secretKey),
     });
 
-    const redirectToSuccess = (status: "complete" | "processing") =>
-      res.redirect(`/order-success?draftId=${encodeURIComponent(draftId)}&status=${status}`);
-
-    if (!draftId || !orderId) {
-      console.log("[payments:complete] missing required query params", {
-        draftIdPresent: Boolean(draftId),
-        orderIdPresent: Boolean(orderId),
-        orderKeyPresent: Boolean(orderKey),
-      });
+    if (!draftId) {
+      console.log("[payments:complete] missing draftId query param");
       return res.status(400).send("Zahlung konnte nicht verifiziert werden.");
     }
 
     const draft = await getPaymentDraft(draftId);
     if (!draft) {
-      console.log("[payments:complete] draft not found", { draftId, orderId, orderKey });
+      console.log("[payments:complete] draft not found", { draftId, sessionId });
       return res.status(404).send("Offene Sendung nicht gefunden.");
     }
+
+    const redirectToSuccess = (status: "complete" | "processing") =>
+      res.redirect(`/order-success?draftId=${encodeURIComponent(draftId)}&status=${status}&hasEmail=${draft.customerEmail ? "1" : "0"}`);
 
     console.log("[payments:complete] loaded draft", {
       draftId: draft.draftId,
@@ -1586,164 +1407,68 @@ async function startServer() {
       selectedPlan: draft.selectedPlan,
       creditsGranted: draft.creditsGranted,
       creditsRecordedAt: draft.creditsRecordedAt,
-      lemonOrderId: draft.lemonOrderId,
-      forwardedPostcardId: draft.forwardedPostcardId,
+      stripeSessionId: draft.stripeSessionId,
+      fulfillmentOrderId: draft.fulfillmentOrderId,
       customerEmail: draft.customerEmail || null,
     });
 
-    if (draft.status === "paid" && draft.forwardedPostcardId) {
-      console.log("[payments:complete] draft already completed", { draftId, forwardedPostcardId: draft.forwardedPostcardId });
+    if (draft.status === "paid" && draft.fulfillmentOrderId) {
+      console.log("[payments:complete] draft already completed", { draftId, fulfillmentOrderId: draft.fulfillmentOrderId });
       return redirectToSuccess("complete");
     }
 
-    if (!config.apiKey) {
-      console.log("[payments:complete] missing Lemon API key, falling back to processing", { draftId, orderId, orderKey });
+    // The Stripe webhook (checkout.session.completed) is the source of truth for
+    // fulfillment and may have already processed this draft by the time the
+    // customer's browser lands here. If it hasn't (webhook delivery delay, no
+    // webhook configured locally, etc.), fall back to verifying the session
+    // directly via the Stripe API so the customer isn't stuck on "processing"
+    // longer than necessary. fulfillPaidDraft is idempotent, so it's safe if
+    // the webhook fires before or after this runs.
+    if (!sessionId || !stripeConfig.secretKey) {
+      console.log("[payments:complete] no session_id or Stripe not configured, waiting on webhook", { draftId, sessionId });
       return redirectToSuccess("processing");
     }
 
     try {
-      const lemonOrderUrl = `https://api.lemonsqueezy.com/v1/orders/${orderId}`;
-      console.log("[payments:complete] verifying Lemon order", {
-        lemonOrderUrl,
-        draftId,
-        orderId,
-        orderKey,
-        testMode: config.testMode,
+      const stripe = getStripeClient();
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      console.log("[payments:complete] Stripe session response", {
+        sessionId: session.id,
+        paymentStatus: session.payment_status,
+        sessionDraftId: session.metadata?.draftId ?? null,
       });
 
-      const response = await fetch(`https://api.lemonsqueezy.com/v1/orders/${orderId}`, {
-        method: "GET",
-        headers: {
-          Accept: "application/vnd.api+json",
-          "Content-Type": "application/vnd.api+json",
-          Authorization: `Bearer ${config.apiKey}`,
-        },
-      });
-
-      const payload = await response.json().catch(() => ({}));
-      const status = String(payload?.data?.attributes?.status || "").toLowerCase();
-      console.log("[payments:complete] Lemon order response", {
-        ok: response.ok,
-        statusCode: response.status,
-        lemonStatus: status,
-        testMode: payload?.data?.attributes?.test_mode ?? null,
-        orderIdentifier: payload?.data?.attributes?.identifier ?? null,
-        firstOrderItemVariantId: payload?.data?.attributes?.first_order_item?.variant_id ?? null,
-        firstOrderItemName: payload?.data?.attributes?.first_order_item?.variant_name ?? null,
-        responsePayload: payload,
-      });
-      if (!response.ok || status !== "paid") {
-        console.log("[payments:complete] verification failed, redirecting to processing", {
+      if (session.metadata?.draftId && session.metadata.draftId !== draftId) {
+        console.error("[payments:complete] session draftId does not match query draftId, refusing to fulfill", {
           draftId,
-          orderId,
-          orderKey,
-          responseOk: response.ok,
-          lemonStatus: status,
+          sessionDraftId: session.metadata.draftId,
+          sessionId,
         });
         return redirectToSuccess("processing");
       }
 
-      const updatedDraft = await applySuccessfulPayment(draftId, orderId);
+      if (session.payment_status !== "paid") {
+        console.log("[payments:complete] session not paid yet, redirecting to processing", {
+          draftId,
+          sessionId,
+          paymentStatus: session.payment_status,
+        });
+        return redirectToSuccess("processing");
+      }
+
+      const updatedDraft = await fulfillPaidDraft(draftId, session.id, `complete-${draftId}`);
       if (!updatedDraft) {
-        console.log("[payments:complete] draft disappeared during payment application", { draftId, orderId, orderKey });
+        console.log("[payments:complete] draft disappeared during payment application", { draftId, sessionId });
         return redirectToSuccess("processing");
       }
 
-      console.log("[payments:complete] payment applied", {
-        draftId,
-        orderId,
-        orderKey,
-        creditsGranted: updatedDraft.creditsGranted,
-        selectedPlan: updatedDraft.selectedPlan,
-        creditsRecordedAt: updatedDraft.creditsRecordedAt,
-        lemonOrderId: updatedDraft.lemonOrderId,
-      });
-
-      if (updatedDraft.forwardedPostcardId) {
-        console.log("[payments:complete] postcard already forwarded", {
-          draftId,
-          forwardedPostcardId: updatedDraft.forwardedPostcardId,
-        });
-        return redirectToSuccess("complete");
-      }
-
-      // The payment was already committed as "paid" by applySuccessfulPayment
-      // above (its own DB transaction) before we ever call the print partner.
-      // A MyPostcard outage/bad-credentials failure must not undo that or
-      // leave the customer stuck on the "processing" success page - it's
-      // caught separately here and only logged for manual fulfillment retry.
-      try {
-        const forwarded = await forwardToMyPostcard({
-          recipientName: updatedDraft.recipientName,
-          recipientAddress: updatedDraft.recipientAddress,
-          recipientPostalCode: updatedDraft.recipientPostalCode,
-          postcardType: "standard",
-          message: updatedDraft.message,
-          selectedPlan: updatedDraft.selectedPlan,
-          source: "familypost-lemonsqueezy",
-          customerEmail: updatedDraft.customerEmail,
-          customerName: updatedDraft.customerName,
-          recipientCity: `${updatedDraft.recipientPostalCode} ${updatedDraft.recipientCity}`.trim(),
-          imageUrl: updatedDraft.imageUrl,
-        });
-
-        const forwardedId = String(forwarded?.id || forwarded?.data?.id || draftId);
-        await markPaymentDraftForwarded(draftId, forwardedId);
-        console.log("[payments:complete] forwarded postcard", {
-          draftId,
-          forwardedId,
-          orderId,
-          orderKey,
-        });
-        sentPostcards.set(forwardedId, {
-          id: forwardedId,
-          recipientName: updatedDraft.recipientName,
-          recipientAddress: updatedDraft.recipientAddress,
-          postcardType: "standard",
-          message: updatedDraft.message,
-          selectedPlan: updatedDraft.selectedPlan,
-          source: "familypost-lemonsqueezy",
-          customerEmail: updatedDraft.customerEmail,
-          customerName: updatedDraft.customerName,
-          recipientCity: `${updatedDraft.recipientPostalCode} ${updatedDraft.recipientCity}`.trim(),
-          imageUrl: updatedDraft.imageUrl,
-          createdAt: new Date().toISOString(),
-        });
-      } catch (forwardError: any) {
-        console.error("[payments:complete] MyPostcard forwarding failed after payment was already applied - needs manual fulfillment retry", {
-          draftId,
-          orderId,
-          orderKey,
-          error: forwardError?.message || forwardError,
-          stack: forwardError?.stack,
-        });
-      }
-
-      // The customer already paid at this point, so a confirmation mail
-      // failure must not block the success redirect - only log it.
-      try {
-        await sendOrderConfirmationMail(updatedDraft, `${draftId}-${orderId}`);
-      } catch (mailError: any) {
-        console.error("[payments:complete] order confirmation mail failed", {
-          draftId,
-          orderId,
-          orderKey,
-          error: mailError?.message || mailError,
-          stack: mailError?.stack,
-        });
-      }
-
-      console.log("[payments:complete] completed successfully", {
-        draftId,
-        orderId,
-        orderKey,
-      });
+      console.log("[payments:complete] completed successfully", { draftId, sessionId });
       return redirectToSuccess("complete");
     } catch (error: any) {
       console.error("[payments:complete] verification or payment application failed", {
         draftId,
-        orderId,
-        orderKey,
+        sessionId,
         error: error?.message || error,
         stack: error?.stack,
       });
@@ -1772,8 +1497,6 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
-
-  logLemonVariantsOnStartup().catch((error) => console.error("[lemon] Startup variant listing failed", error?.message || error));
 }
 
 startServer().catch(console.error);

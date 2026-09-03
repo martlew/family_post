@@ -10,15 +10,17 @@ export type AuthSession = {
 const AUTH_STORAGE_KEY = "familypost_auth";
 
 export const getApiBaseUrl = () => {
+  if (import.meta.env.DEV && typeof window !== "undefined") {
+    const { hostname } = window.location;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      // Local dev: always go through Vite's proxy (see vite.config.ts) to the backend,
+      // even if VITE_API_URL is set to a production value in .env.
+      return "";
+    }
+  }
+
   const configured = String(import.meta.env.VITE_API_URL ?? "").trim();
   if (!configured) {
-    if (typeof window !== "undefined") {
-      const { hostname, protocol } = window.location;
-      if (hostname === "localhost" || hostname === "127.0.0.1") {
-        return `${protocol}//localhost:3000`;
-      }
-    }
-
     return "https://api.foto-post-weltweit.de";
   }
   return configured.replace(/\/$/, "");

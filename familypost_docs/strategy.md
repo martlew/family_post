@@ -9,13 +9,13 @@ Unsere Strategie ist einfach:
 - Wir schuetzen die Menschlichkeit vor automatischen Prozessen.
 
 Operative Leitplanken:
-- Die Postkarten-Abwicklung erfolgt ueber die EchtPost-API.
+- Die Postkarten-Abwicklung erfolgt ueber die Prodigi Print-API (v4.0), Zuordnung per Order-Referenz-ID.
 - Frontend und Backend werden ueber den Manitu-Server und die angebundenen Produktionsdomains betrieben.
 - Globale DNS-Stabilitaet und HTTPS folgen der aktuellen Manitu-/Domain-Konfiguration.
 - Wir nutzen nicht direkt Stripe. Alle Zahlungen, Abonnements und Rechnungsstellungen werden ueber Lemon Squeezy als Merchant of Record (MoR) abgewickelt.
 - Im B2C-Bereich ist unsere Preisstruktur bindend und enthaelt jederzeit das All-inclusive-Versprechen: weltweiter Premium-Versand, hochwertiger 300g-Druck und echtes Porto ohne versteckte Kosten.
 - Einzelticket: **4,99 EUR pro Karte** fuer gelegentliche Urlaubsgruesse.
-- Family-Paket (5 Postkarten): **22,99 EUR** (kein Ablaufdatum, gemeinsam in der Familie nutzbar).
+- Family-Paket (5 Postkarten): **21,99 EUR** (kein Ablaufdatum, gemeinsam in der Familie nutzbar).
 - Vorteils-Paket (10 Postkarten): **39,99 EUR** (kein Ablaufdatum, ideal fuer Vielschreiber).
 
 Unser primaeres Meilenstein-Ziel ist ein stabiler monatlicher Umsatz von **500 EUR**.

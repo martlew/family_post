@@ -1,18 +1,21 @@
-import { CheckCircle2, Mail, MoveRight, Sparkles } from "lucide-react";
+import { CheckCircle2, Mail, MoveRight, Sparkles, UserPlus } from "lucide-react";
 import { Link } from "wouter";
 import BrandMark from "@/components/BrandMark";
 import Footer from "@/components/Footer";
+import { getAuthSession } from "@/lib/auth";
 
 export default function OrderSuccess() {
   const params = new URLSearchParams(window.location.search);
   const draftId = params.get("draftId") || "";
   const status = params.get("status") || "complete";
   const isProcessing = status === "processing";
+  const hasEmail = params.get("hasEmail") === "1";
+  const isLoggedIn = Boolean(getAuthSession());
 
   const headline = isProcessing ? "Wir verarbeiten deine Bestellung gerade..." : "Deine Postkarte ist in Bearbeitung.";
   const description = isProcessing
     ? "Die Zahlung ist angekommen, der letzte Abgleich läuft noch. In wenigen Momenten geht es automatisch weiter, ohne dass du etwas tun musst."
-    : "Wir haben die Zahlung verarbeitet und bereiten jetzt den Druck sowie den Versand vor. Du bekommst gleich alle weiteren Schritte per E-Mail.";
+    : "Wir haben die Zahlung verarbeitet und bereiten jetzt den Druck sowie den Versand vor.";
 
   return (
     <div className="min-h-dvh bg-[#F7F3EA] text-[#0E4B40]">
@@ -38,6 +41,7 @@ export default function OrderSuccess() {
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-[#4A635C] sm:text-lg">
             {description}
+            {!isProcessing && hasEmail && " Du bekommst gleich alle weiteren Schritte per E-Mail."}
           </p>
 
           {draftId && (
@@ -47,10 +51,23 @@ export default function OrderSuccess() {
           )}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Link href="/dashboard" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0E4B40] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0B3E35]">
-              Zum Dashboard
-              <MoveRight className="h-4 w-4" />
-            </Link>
+            {isLoggedIn ? (
+              <Link href="/dashboard" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0E4B40] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0B3E35]">
+                Zum Dashboard
+                <MoveRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <>
+                <Link href="/" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0E4B40] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0B3E35]">
+                  Zur Startseite
+                  <MoveRight className="h-4 w-4" />
+                </Link>
+                <Link href="/register" className="inline-flex items-center justify-center gap-2 rounded-full border border-[#D9E4DD] bg-white px-6 py-3 text-sm font-semibold text-[#0E4B40] transition-colors hover:bg-[#E4F1E9]">
+                  <UserPlus className="h-4 w-4" />
+                  Jetzt Konto erstellen, um Karte zu verfolgen
+                </Link>
+              </>
+            )}
             <Link href="/editor" className="inline-flex items-center justify-center gap-2 rounded-full border border-[#D9E4DD] bg-white px-6 py-3 text-sm font-semibold text-[#0E4B40] transition-colors hover:bg-[#E4F1E9]">
               <Mail className="h-4 w-4" />
               Nächste Karte erstellen

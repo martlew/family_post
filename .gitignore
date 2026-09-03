@@ -118,3 +118,7 @@ client/public/__manus__/version.json
 .netlify
 
 .vercel
+
+# Python
+__pycache__/
+*.py[cod]

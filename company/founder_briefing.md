@@ -70,13 +70,13 @@ Wenn nicht, gehört sie nicht zu Family Post.
 ## 🛠️ Operative Leitplanken (Ergänzung für System-Agenten)
 
 ### 1. Technische Infrastruktur & API
-Die vollautomatische Postkarten-Abwicklung im Hintergrund erfolgt über die **EchtPost-API**. Frontend und Backend werden über den **Manitu-Server** und die angebundenen Produktionsdomains betrieben. Globale Erreichbarkeit, DNS-Stabilität und HTTPS folgen der aktuellen Manitu-/Domain-Konfiguration.
+Die vollautomatische Postkarten-Abwicklung im Hintergrund erfolgt über die **Prodigi Print-API (v4.0)**, Zuordnung per **Order-Referenz-ID**. Frontend und Backend werden über den **Manitu-Server** und die angebundenen Produktionsdomains betrieben. Globale Erreichbarkeit, DNS-Stabilität und HTTPS folgen der aktuellen Manitu-/Domain-Konfiguration.
 
 ### 2. Die eiserne Preisgrenze
 Unser Angebot folgt festen Paketpreisen, die das All-inclusive-Versprechen halten: Weltweiter Premium-Versand, hochwertiger 300g-Druck und echtes Porto sind immer komplett inklusive – ohne versteckte Kosten.
 
 - Einzelticket: **4,99 € pro Karte** für gelegentliche Urlaubsgrüße.
-- Family-Paket (5 Postkarten): **22,99 €** zum Sparpreis (kein Ablaufdatum, gemeinsam in der Familie nutzbar).
+- Family-Paket (5 Postkarten): **21,99 €** zum Sparpreis (kein Ablaufdatum, gemeinsam in der Familie nutzbar).
 - Vorteils-Paket (10 Postkarten): **39,99 €** zum Bestpreis (kein Ablaufdatum, ideal für Vielschreiber).
 
 Diese Preisstruktur bleibt im B2C-Bereich stets bindend und darf vom System niemals eigenständig überschritten werden.

@@ -66,10 +66,9 @@ prompt_field DB_PASSWORD "Passwort des familypost_db Containers" true
 prompt_field DB_URL "Alternative: vollstaendige DB_URL (optional, hat Vorrang vor DB_PASSWORD)" true
 
 echo
-echo "--- MyPostcard (Druck & Versand) ---"
-prompt_field MYPOSTCARD_API_KEY "API Key" true
-prompt_field MYPOSTCARD_USERNAME "Username"
-prompt_field MYPOSTCARD_PASSWORD "Passwort" true
+echo "--- Prodigi (Druck & Versand) ---"
+prompt_field PRODIGI_API_KEY "API Key" true
+prompt_field PRODIGI_ENV "Umgebung (sandbox / leer fuer Production)"
 
 echo
 echo "--- SMTP (Passwort-Reset-Mail) ---"
